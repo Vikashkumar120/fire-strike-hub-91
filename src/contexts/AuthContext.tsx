@@ -7,6 +7,7 @@ interface User {
   email: string;
   phone: string;
   joinedAt: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {

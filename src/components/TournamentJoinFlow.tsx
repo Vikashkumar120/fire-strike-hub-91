@@ -26,7 +26,7 @@ interface Tournament {
   id: number;
   title: string;
   type: string;
-  entryFee: number;
+  entryFee: number | string;
   prizePool: number;
   slots: { filled: number; total: number };
   date: string;
@@ -61,6 +61,13 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     setWalletBalance(userWallet.balance);
   }, [user]);
 
+  const getEntryFeeAmount = (): number => {
+    if (typeof tournament.entryFee === 'string') {
+      return parseInt(tournament.entryFee.replace(/[^\d]/g, '')) || 0;
+    }
+    return tournament.entryFee;
+  };
+
   const handleTeammateChange = (index: number, value: string) => {
     const newTeammates = [...userDetails.teammates];
     newTeammates[index] = value;
@@ -91,13 +98,9 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   };
 
   const handleWalletPayment = () => {
-    console.log('Wallet balance:', walletBalance, 'Entry fee:', tournament.entryFee);
+    const entryFeeAmount = getEntryFeeAmount();
+    console.log('Wallet balance:', walletBalance, 'Entry fee:', entryFeeAmount);
     
-    // Extract numeric value from entryFee string (e.g., "₹100" -> 100)
-    const entryFeeAmount = typeof tournament.entryFee === 'string' 
-      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
-      : tournament.entryFee;
-
     if (walletBalance < entryFeeAmount) {
       toast({
         title: "Insufficient Balance",
@@ -156,9 +159,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   };
 
   const handleUPISuccess = (transactionId: string, screenshot?: string) => {
-    const entryFeeAmount = typeof tournament.entryFee === 'string' 
-      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
-      : tournament.entryFee;
+    const entryFeeAmount = getEntryFeeAmount();
 
     // Save tournament join activity for admin
     const userActivity = JSON.parse(localStorage.getItem('userActivity') || '[]');
@@ -297,9 +298,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   );
 
   const renderStep2 = () => {
-    const entryFeeAmount = typeof tournament.entryFee === 'string' 
-      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
-      : tournament.entryFee;
+    const entryFeeAmount = getEntryFeeAmount();
 
     return (
       <div className="space-y-6">
@@ -375,9 +374,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   };
 
   const renderStep3 = () => {
-    const entryFeeAmount = typeof tournament.entryFee === 'string' 
-      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
-      : tournament.entryFee;
+    const entryFeeAmount = getEntryFeeAmount();
 
     return (
       <div className="space-y-6">
@@ -480,9 +477,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   }
 
   if (showUPIPayment) {
-    const entryFeeAmount = typeof tournament.entryFee === 'string' 
-      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
-      : tournament.entryFee;
+    const entryFeeAmount = getEntryFeeAmount();
 
     return (
       <UPIPayment
