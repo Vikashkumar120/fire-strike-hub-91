@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { X, Trophy, Users, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import UPIPayment from './UPIPayment';
+import LoginModal from './LoginModal';
 
 interface Tournament {
   id: number;
@@ -30,9 +31,11 @@ interface TournamentJoinFlowProps {
 
 const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: TournamentJoinFlowProps) => {
   const [step, setStep] = useState(1);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [gameDetails, setGameDetails] = useState({
     gameName: '',
     uid: '',
+    whatsappNumber: '',
     squadMembers: ['', '', '']
   });
   const [paymentData, setPaymentData] = useState({
@@ -40,24 +43,37 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     amount: 0
   });
   const { toast } = useToast();
+  const { isAuthenticated, user } = useAuth();
 
   const entryFeeAmount = parseInt(tournament.entryFee.replace('₹', '')) || 0;
   const isFree = entryFeeAmount === 0;
 
+  const handleJoinClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleLoginSuccess = () => {
+    setStep(2);
+  };
+
   const handleGameDetailsSubmit = () => {
-    if (!gameDetails.gameName || !gameDetails.uid) {
+    if (!gameDetails.gameName || !gameDetails.uid || !gameDetails.whatsappNumber) {
       toast({
         title: "Required Fields Missing",
-        description: "Please enter your Free Fire Game Name and UID",
+        description: "Please enter your Game Name, UID, and WhatsApp Number",
         variant: "destructive"
       });
       return;
     }
     
     if (isFree) {
-      setStep(4); // Skip payment for free tournaments
+      handleJoinComplete();
     } else {
-      setStep(3); // Go to payment
+      setStep(3);
     }
   };
 
@@ -66,12 +82,42 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
       transactionId,
       amount: entryFeeAmount
     });
-    setStep(4); // Go to confirmation
+    handleJoinComplete();
+  };
+
+  const handleJoinComplete = () => {
+    // Store match history
+    const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
+    const newMatch = {
+      id: Date.now(),
+      tournament,
+      gameDetails,
+      paymentData: isFree ? null : paymentData,
+      joinedAt: new Date().toISOString(),
+      userId: user?.id,
+      slotNumber: Math.floor(Math.random() * 64) + 1
+    };
+    matchHistory.push(newMatch);
+    localStorage.setItem('matchHistory', JSON.stringify(matchHistory));
+
+    // Store user activity for admin
+    const userActivity = JSON.parse(localStorage.getItem('userActivity') || '[]');
+    userActivity.push({
+      userId: user?.id,
+      userName: user?.name,
+      action: 'joined_tournament',
+      tournamentId: tournament.id,
+      tournamentName: tournament.title,
+      timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('userActivity', JSON.stringify(userActivity));
+
+    setStep(4);
   };
 
   const handleClose = () => {
     setStep(1);
-    setGameDetails({ gameName: '', uid: '', squadMembers: ['', '', ''] });
+    setGameDetails({ gameName: '', uid: '', whatsappNumber: '', squadMembers: ['', '', ''] });
     setPaymentData({ transactionId: '', amount: 0 });
     onClose();
   };
@@ -131,10 +177,10 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
       </div>
 
       <Button 
-        onClick={() => setStep(2)}
+        onClick={handleJoinClick}
         className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
       >
-        Proceed to Join
+        {isAuthenticated ? 'Proceed to Join' : 'Login & Join Tournament'}
       </Button>
     </div>
   );
@@ -169,6 +215,21 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
             onChange={(e) => setGameDetails({...gameDetails, uid: e.target.value})}
             className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
           />
+        </div>
+
+        <div>
+          <label className="block text-gray-300 text-sm font-medium mb-2">
+            WhatsApp Number * (for group invite)
+          </label>
+          <Input
+            placeholder="Enter your WhatsApp number"
+            value={gameDetails.whatsappNumber}
+            onChange={(e) => setGameDetails({...gameDetails, whatsappNumber: e.target.value})}
+            className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
+          />
+          <p className="text-gray-400 text-xs mt-1">
+            You will be added to tournament WhatsApp group
+          </p>
         </div>
 
         {tournament.type === 'Squad' && (
@@ -255,7 +316,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
 
       <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg">
         <p className="text-cyan-300 text-sm">
-          🎮 Room ID & Password will be sent 15 minutes before the match starts. Check your notifications!
+          🎮 Room ID & Password will be sent 15 minutes before the match starts. Check your WhatsApp group!
         </p>
       </div>
 
@@ -283,6 +344,12 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
+      
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 
