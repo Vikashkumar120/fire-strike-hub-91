@@ -22,6 +22,7 @@ const MatchHistory = () => {
     const allMatches = JSON.parse(localStorage.getItem('matchHistory') || '[]');
     // Filter matches for current user
     const userMatches = allMatches.filter(match => match.userId === user?.id);
+    console.log('User matches loaded:', userMatches);
     setMatchHistory(userMatches);
   };
 
@@ -68,9 +69,9 @@ const MatchHistory = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">My Joined Matches</h2>
+        <h2 className="text-2xl font-bold text-white">My Tournament History</h2>
         <Badge className="bg-cyan-500/20 text-cyan-400">
-          {matchHistory.length} Matches Joined
+          {matchHistory.length} Tournaments Joined
         </Badge>
       </div>
       
@@ -151,7 +152,7 @@ const MatchHistory = () => {
                   </div>
                   <div>
                     <p className="text-gray-300">Payment Method:</p>
-                    <p className="text-blue-400">{match.paymentMethod || 'UPI'}</p>
+                    <p className="text-blue-400">{match.paymentMethod || 'Wallet'}</p>
                   </div>
                   {match.paymentData && (
                     <div>
