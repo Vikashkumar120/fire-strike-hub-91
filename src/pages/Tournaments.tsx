@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Clock, Star, Filter, Search } from 'lucide-react';
@@ -267,7 +266,6 @@ const Tournaments = () => {
           tournament={selectedTournament}
           isOpen={isJoinFlowOpen}
           onClose={handleCloseJoinFlow}
-          isMobile={isMobile}
         />
       )}
     </div>
