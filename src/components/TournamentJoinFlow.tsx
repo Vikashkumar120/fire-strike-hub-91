@@ -1,12 +1,12 @@
-
 import React, { useState } from 'react';
-import { X, Trophy, Users, Clock, MapPin, Wallet, CreditCard, CheckCircle } from 'lucide-react';
+import { X, Trophy, Users, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { useToast } from '@/hooks/use-toast';
+import UPIPayment from './UPIPayment';
 
 interface Tournament {
   id: number;
@@ -34,8 +34,10 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     uid: '',
     squadMembers: ['', '', '']
   });
-  const [walletBalance] = useState(150); // Mock wallet balance
-  const [paymentMethod, setPaymentMethod] = useState('wallet');
+  const [paymentData, setPaymentData] = useState({
+    transactionId: '',
+    amount: 0
+  });
   const { toast } = useToast();
 
   const entryFeeAmount = parseInt(tournament.entryFee.replace('₹', '')) || 0;
@@ -58,29 +60,18 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     }
   };
 
-  const handlePayment = () => {
-    if (paymentMethod === 'wallet' && walletBalance < entryFeeAmount) {
-      toast({
-        title: "Insufficient Balance",
-        description: "Please add funds to your wallet or choose another payment method",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Mock payment processing
-    setTimeout(() => {
-      setStep(4);
-      toast({
-        title: "Payment Successful!",
-        description: "You have successfully joined the tournament",
-      });
-    }, 1500);
+  const handlePaymentSuccess = (transactionId: string) => {
+    setPaymentData({
+      transactionId,
+      amount: entryFeeAmount
+    });
+    setStep(4); // Go to confirmation
   };
 
   const handleClose = () => {
     setStep(1);
     setGameDetails({ gameName: '', uid: '', squadMembers: ['', '', ''] });
+    setPaymentData({ transactionId: '', amount: 0 });
     onClose();
   };
 
@@ -220,78 +211,11 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   );
 
   const renderStep3 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h3 className="text-2xl font-bold text-white mb-2">Payment</h3>
-        <p className="text-gray-300">Complete your payment to join the tournament</p>
-      </div>
-
-      <div className="bg-black/20 p-4 rounded-lg border border-yellow-500/20">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-gray-300">Entry Fee:</span>
-          <span className="text-2xl font-bold text-yellow-400">{tournament.entryFee}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-300">Wallet Balance:</span>
-          <span className="text-lg font-medium text-green-400">₹{walletBalance}</span>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <p className="text-white font-medium">Payment Method:</p>
-        
-        <div className="space-y-2">
-          <label className="flex items-center space-x-3 p-3 bg-black/20 rounded-lg cursor-pointer">
-            <input
-              type="radio"
-              name="payment"
-              value="wallet"
-              checked={paymentMethod === 'wallet'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="text-cyan-500"
-            />
-            <Wallet className="w-5 h-5 text-cyan-400" />
-            <span className="text-white">Use Wallet (₹{walletBalance})</span>
-          </label>
-
-          <label className="flex items-center space-x-3 p-3 bg-black/20 rounded-lg cursor-pointer">
-            <input
-              type="radio"
-              name="payment"
-              value="upi"
-              checked={paymentMethod === 'upi'}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="text-cyan-500"
-            />
-            <CreditCard className="w-5 h-5 text-purple-400" />
-            <span className="text-white">UPI / Razorpay</span>
-          </label>
-        </div>
-
-        {walletBalance < entryFeeAmount && paymentMethod === 'wallet' && (
-          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
-            <p className="text-red-400 text-sm">Insufficient wallet balance. Please add funds or choose another payment method.</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3">
-        <Button 
-          variant="outline" 
-          onClick={() => setStep(2)}
-          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
-        >
-          Back
-        </Button>
-        <Button 
-          onClick={handlePayment}
-          disabled={paymentMethod === 'wallet' && walletBalance < entryFeeAmount}
-          className="flex-1 bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700"
-        >
-          Pay & Join
-        </Button>
-      </div>
-    </div>
+    <UPIPayment
+      amount={entryFeeAmount}
+      onSuccess={handlePaymentSuccess}
+      onBack={() => setStep(2)}
+    />
   );
 
   const renderStep4 = () => (
@@ -320,6 +244,12 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
           <span className="text-gray-300">Match Time:</span>
           <span className="text-white">{new Date(tournament.startTime).toLocaleTimeString()}</span>
         </div>
+        {!isFree && paymentData.transactionId && (
+          <div className="flex justify-between">
+            <span className="text-gray-300">Transaction ID:</span>
+            <span className="text-green-400 font-mono text-sm">{paymentData.transactionId}</span>
+          </div>
+        )}
       </div>
 
       <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg">
