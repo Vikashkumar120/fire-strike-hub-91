@@ -1,0 +1,385 @@
+
+import React, { useState } from 'react';
+import { X, Trophy, Users, Clock, MapPin, Wallet, CreditCard, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { useToast } from '@/hooks/use-toast';
+
+interface Tournament {
+  id: number;
+  title: string;
+  type: string;
+  prize: string;
+  players: string;
+  startTime: string;
+  entryFee: string;
+  map: string;
+  duration: string;
+}
+
+interface TournamentJoinFlowProps {
+  tournament: Tournament;
+  isOpen: boolean;
+  onClose: () => void;
+  isMobile?: boolean;
+}
+
+const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: TournamentJoinFlowProps) => {
+  const [step, setStep] = useState(1);
+  const [gameDetails, setGameDetails] = useState({
+    gameName: '',
+    uid: '',
+    squadMembers: ['', '', '']
+  });
+  const [walletBalance] = useState(150); // Mock wallet balance
+  const [paymentMethod, setPaymentMethod] = useState('wallet');
+  const { toast } = useToast();
+
+  const entryFeeAmount = parseInt(tournament.entryFee.replace('₹', '')) || 0;
+  const isFree = entryFeeAmount === 0;
+
+  const handleGameDetailsSubmit = () => {
+    if (!gameDetails.gameName || !gameDetails.uid) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please enter your Free Fire Game Name and UID",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (isFree) {
+      setStep(4); // Skip payment for free tournaments
+    } else {
+      setStep(3); // Go to payment
+    }
+  };
+
+  const handlePayment = () => {
+    if (paymentMethod === 'wallet' && walletBalance < entryFeeAmount) {
+      toast({
+        title: "Insufficient Balance",
+        description: "Please add funds to your wallet or choose another payment method",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Mock payment processing
+    setTimeout(() => {
+      setStep(4);
+      toast({
+        title: "Payment Successful!",
+        description: "You have successfully joined the tournament",
+      });
+    }, 1500);
+  };
+
+  const handleClose = () => {
+    setStep(1);
+    setGameDetails({ gameName: '', uid: '', squadMembers: ['', '', ''] });
+    onClose();
+  };
+
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-white mb-2">{tournament.title}</h3>
+        <p className="text-cyan-400">{tournament.type} Tournament</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-black/20 p-4 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Clock className="w-5 h-5 text-cyan-400" />
+            <span className="text-gray-300 text-sm">Date & Time</span>
+          </div>
+          <p className="text-white font-medium">{new Date(tournament.startTime).toLocaleString()}</p>
+        </div>
+
+        <div className="bg-black/20 p-4 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Trophy className="w-5 h-5 text-yellow-400" />
+            <span className="text-gray-300 text-sm">Prize Pool</span>
+          </div>
+          <p className="text-white font-medium">{tournament.prize}</p>
+        </div>
+
+        <div className="bg-black/20 p-4 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <MapPin className="w-5 h-5 text-green-400" />
+            <span className="text-gray-300 text-sm">Map</span>
+          </div>
+          <p className="text-white font-medium">{tournament.map}</p>
+        </div>
+
+        <div className="bg-black/20 p-4 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <Users className="w-5 h-5 text-purple-400" />
+            <span className="text-gray-300 text-sm">Slots</span>
+          </div>
+          <p className="text-white font-medium">{tournament.players}</p>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 p-4 rounded-lg border border-cyan-500/20">
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="text-white font-medium">Entry Fee</p>
+            <p className="text-2xl font-bold text-cyan-400">{tournament.entryFee}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-gray-300 text-sm">Mode</p>
+            <p className="text-white font-medium">{tournament.type}</p>
+          </div>
+        </div>
+      </div>
+
+      <Button 
+        onClick={() => setStep(2)}
+        className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+      >
+        Proceed to Join
+      </Button>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-white mb-2">Game Details</h3>
+        <p className="text-gray-300">Enter your Free Fire game information</p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-gray-300 text-sm font-medium mb-2">
+            Free Fire Game Name *
+          </label>
+          <Input
+            placeholder="Enter your in-game name"
+            value={gameDetails.gameName}
+            onChange={(e) => setGameDetails({...gameDetails, gameName: e.target.value})}
+            className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
+          />
+        </div>
+
+        <div>
+          <label className="block text-gray-300 text-sm font-medium mb-2">
+            Free Fire UID *
+          </label>
+          <Input
+            placeholder="Enter your UID"
+            value={gameDetails.uid}
+            onChange={(e) => setGameDetails({...gameDetails, uid: e.target.value})}
+            className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
+          />
+        </div>
+
+        {tournament.type === 'Squad' && (
+          <div>
+            <label className="block text-gray-300 text-sm font-medium mb-2">
+              Squad Member UIDs (Optional)
+            </label>
+            {gameDetails.squadMembers.map((member, index) => (
+              <Input
+                key={index}
+                placeholder={`Squad Member ${index + 1} UID`}
+                value={member}
+                onChange={(e) => {
+                  const newMembers = [...gameDetails.squadMembers];
+                  newMembers[index] = e.target.value;
+                  setGameDetails({...gameDetails, squadMembers: newMembers});
+                }}
+                className="bg-black/20 border-gray-600 text-white placeholder-gray-400 mb-2"
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3">
+        <Button 
+          variant="outline" 
+          onClick={() => setStep(1)}
+          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          Back
+        </Button>
+        <Button 
+          onClick={handleGameDetailsSubmit}
+          className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+        >
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-2xl font-bold text-white mb-2">Payment</h3>
+        <p className="text-gray-300">Complete your payment to join the tournament</p>
+      </div>
+
+      <div className="bg-black/20 p-4 rounded-lg border border-yellow-500/20">
+        <div className="flex justify-between items-center mb-4">
+          <span className="text-gray-300">Entry Fee:</span>
+          <span className="text-2xl font-bold text-yellow-400">{tournament.entryFee}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-gray-300">Wallet Balance:</span>
+          <span className="text-lg font-medium text-green-400">₹{walletBalance}</span>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-white font-medium">Payment Method:</p>
+        
+        <div className="space-y-2">
+          <label className="flex items-center space-x-3 p-3 bg-black/20 rounded-lg cursor-pointer">
+            <input
+              type="radio"
+              name="payment"
+              value="wallet"
+              checked={paymentMethod === 'wallet'}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="text-cyan-500"
+            />
+            <Wallet className="w-5 h-5 text-cyan-400" />
+            <span className="text-white">Use Wallet (₹{walletBalance})</span>
+          </label>
+
+          <label className="flex items-center space-x-3 p-3 bg-black/20 rounded-lg cursor-pointer">
+            <input
+              type="radio"
+              name="payment"
+              value="upi"
+              checked={paymentMethod === 'upi'}
+              onChange={(e) => setPaymentMethod(e.target.value)}
+              className="text-cyan-500"
+            />
+            <CreditCard className="w-5 h-5 text-purple-400" />
+            <span className="text-white">UPI / Razorpay</span>
+          </label>
+        </div>
+
+        {walletBalance < entryFeeAmount && paymentMethod === 'wallet' && (
+          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
+            <p className="text-red-400 text-sm">Insufficient wallet balance. Please add funds or choose another payment method.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3">
+        <Button 
+          variant="outline" 
+          onClick={() => setStep(2)}
+          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          Back
+        </Button>
+        <Button 
+          onClick={handlePayment}
+          disabled={paymentMethod === 'wallet' && walletBalance < entryFeeAmount}
+          className="flex-1 bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700"
+        >
+          Pay & Join
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="space-y-6 text-center">
+      <div className="flex justify-center">
+        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
+          <CheckCircle className="w-12 h-12 text-green-400" />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-2xl font-bold text-white mb-2">Successfully Joined!</h3>
+        <p className="text-gray-300">You've successfully joined this tournament</p>
+      </div>
+
+      <div className="bg-black/20 p-4 rounded-lg space-y-3">
+        <div className="flex justify-between">
+          <span className="text-gray-300">Slot Number:</span>
+          <span className="text-cyan-400 font-bold">#12</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-300">Match Date:</span>
+          <span className="text-white">{new Date(tournament.startTime).toLocaleDateString()}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-300">Match Time:</span>
+          <span className="text-white">{new Date(tournament.startTime).toLocaleTimeString()}</span>
+        </div>
+      </div>
+
+      <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg">
+        <p className="text-cyan-300 text-sm">
+          🎮 Room ID & Password will be sent 15 minutes before the match starts. Check your notifications!
+        </p>
+      </div>
+
+      <div className="flex gap-3">
+        <Button 
+          onClick={handleClose}
+          className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+        >
+          Go to My Matches
+        </Button>
+        <Button 
+          variant="outline"
+          onClick={handleClose}
+          className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
+        >
+          Join Another Match
+        </Button>
+      </div>
+    </div>
+  );
+
+  const content = (
+    <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {step === 1 && renderStep1()}
+      {step === 2 && renderStep2()}
+      {step === 3 && renderStep3()}
+      {step === 4 && renderStep4()}
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={handleClose}>
+        <DrawerContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-h-[90vh]">
+          <DrawerHeader>
+            <DrawerTitle className="text-white text-center">Tournament Details</DrawerTitle>
+          </DrawerHeader>
+          <div className="p-4 overflow-y-auto">
+            {content}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-white text-center">Tournament Details</DialogTitle>
+        </DialogHeader>
+        {content}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default TournamentJoinFlow;

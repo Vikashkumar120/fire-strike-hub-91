@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Clock, Star, Filter, Search } from 'lucide-react';
@@ -6,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TournamentJoinFlow from '@/components/TournamentJoinFlow';
 
 const Tournaments = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  const [isJoinFlowOpen, setIsJoinFlowOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const tournaments = [
     {
@@ -102,6 +105,16 @@ const Tournaments = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const handleJoinTournament = (tournament) => {
+    setSelectedTournament(tournament);
+    setIsJoinFlowOpen(true);
+  };
+
+  const handleCloseJoinFlow = () => {
+    setIsJoinFlowOpen(false);
+    setSelectedTournament(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
@@ -109,9 +122,11 @@ const Tournaments = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg flex items-center justify-center">
-                <Trophy className="w-5 h-5 text-white" />
-              </div>
+              <img 
+                src="/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png" 
+                alt="Free Fire Tournament Logo" 
+                className="w-10 h-10 rounded-lg"
+              />
               <span className="text-xl font-bold text-white">FireTourneys</span>
             </Link>
             <div className="flex items-center space-x-3">
@@ -204,7 +219,7 @@ const Tournaments = () => {
                 <div className="flex gap-2">
                   <Button 
                     className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
-                    onClick={() => console.log('Joining tournament:', tournament.id)}
+                    onClick={() => handleJoinTournament(tournament)}
                   >
                     Join Tournament
                   </Button>
@@ -228,6 +243,16 @@ const Tournaments = () => {
           </div>
         )}
       </div>
+
+      {/* Join Tournament Flow */}
+      {selectedTournament && (
+        <TournamentJoinFlow
+          tournament={selectedTournament}
+          isOpen={isJoinFlowOpen}
+          onClose={handleCloseJoinFlow}
+          isMobile={isMobile}
+        />
+      )}
     </div>
   );
 };
