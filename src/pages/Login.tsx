@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +32,24 @@ const Login = () => {
         description: "Please fill all fields",
         variant: "destructive"
       });
+      return;
+    }
+
+    // Check for admin login
+    if (formData.email === 'admin@firetourneys.com' && formData.password === 'admin123') {
+      login({
+        name: 'Admin',
+        email: formData.email,
+        phone: '1234567890',
+        isAdmin: true
+      });
+
+      toast({
+        title: "Admin Login Successful!",
+        description: "Welcome to FireTourneys Admin Panel",
+      });
+
+      navigate('/admin');
       return;
     }
 
@@ -136,6 +154,13 @@ const Login = () => {
               >
                 Sign In
               </Button>
+
+              {/* Admin Login Info */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                <p className="text-blue-400 text-sm font-medium mb-1">Admin Access:</p>
+                <p className="text-gray-300 text-xs">Email: admin@firetourneys.com</p>
+                <p className="text-gray-300 text-xs">Password: admin123</p>
+              </div>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

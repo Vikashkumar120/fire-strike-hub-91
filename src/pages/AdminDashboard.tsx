@@ -16,7 +16,8 @@ import {
   LogOut,
   Wallet as WalletIcon,
   ArrowUpCircle,
-  ArrowDownCircle
+  ArrowDownCircle,
+  Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import MatchResultsManagement from '@/components/MatchResultsManagement';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -70,6 +72,39 @@ const AdminDashboard = () => {
     const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
     setUserActivity(activity);
     setAdminTransactions(transactions);
+    
+    // Create match results data for joined tournaments
+    const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
+    const matchResults = [];
+    
+    // Group match history by tournament
+    const tournamentGroups = matchHistory.reduce((acc, match) => {
+      const tournamentId = match.tournament.id;
+      if (!acc[tournamentId]) {
+        acc[tournamentId] = [];
+      }
+      acc[tournamentId].push(match);
+      return acc;
+    }, {});
+    
+    // Create match result entries
+    Object.keys(tournamentGroups).forEach(tournamentId => {
+      const matches = tournamentGroups[tournamentId];
+      const firstMatch = matches[0];
+      
+      matchResults.push({
+        id: parseInt(tournamentId),
+        matchName: firstMatch.tournament.title,
+        tournamentType: firstMatch.tournament.type,
+        map: firstMatch.tournament.map,
+        prizePool: firstMatch.tournament.prize?.replace('₹', '') || '0',
+        startTime: firstMatch.tournament.startTime,
+        totalUsers: matches.length,
+        joinedUsers: matches
+      });
+    });
+    
+    localStorage.setItem('matchResults', JSON.stringify(matchResults));
   }, [activeTab]);
 
   const handleCreateTournament = () => {
@@ -664,6 +699,7 @@ const AdminDashboard = () => {
           {[
             { id: 'dashboard', label: 'Dashboard' },
             { id: 'tournaments', label: 'Tournaments' },
+            { id: 'match-results', label: 'Match Results' },
             { id: 'withdrawals', label: 'Withdrawals' },
             { id: 'wallet', label: 'Wallet Transactions' },
             { id: 'notifications', label: 'Notifications' }
@@ -685,6 +721,7 @@ const AdminDashboard = () => {
         {/* Tab Content */}
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'tournaments' && renderTournaments()}
+        {activeTab === 'match-results' && <MatchResultsManagement />}
         {activeTab === 'withdrawals' && renderWithdrawals()}
         {activeTab === 'wallet' && renderWalletTransactions()}
         {activeTab === 'notifications' && renderNotifications()}
