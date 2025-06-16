@@ -23,10 +23,11 @@ interface Tournament {
 
 interface TournamentJoinFlowProps {
   tournament: Tournament;
+  isOpen: boolean;
   onClose: () => void;
 }
 
-const TournamentJoinFlow = ({ tournament, onClose }: TournamentJoinFlowProps) => {
+const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [userDetails, setUserDetails] = useState({
     gameName: '',
@@ -377,9 +378,13 @@ const TournamentJoinFlow = ({ tournament, onClose }: TournamentJoinFlowProps) =>
         amount={entryFeeAmount}
         description={`Entry fee for ${tournament.title}`}
         onSuccess={handleUPISuccess}
-        onCancel={() => setShowUPIPayment(false)}
+        onBack={() => setShowUPIPayment(false)}
       />
     );
+  }
+
+  if (!isOpen) {
+    return null;
   }
 
   return (

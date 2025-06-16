@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { QrCode, Copy, Check, ArrowLeft, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,11 +7,12 @@ import { useToast } from '@/hooks/use-toast';
 
 interface UPIPaymentProps {
   amount: number;
+  description?: string;
   onSuccess: (transactionId: string, screenshot?: string) => void;
   onBack: () => void;
 }
 
-const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
+const UPIPayment = ({ amount, description, onSuccess, onBack }: UPIPaymentProps) => {
   const [transactionId, setTransactionId] = useState('');
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -24,7 +24,7 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
   // UPI payment details
   const upiId = 'vik657@axl';
   const merchantName = 'FireTourneys';
-  const upiUrl = `upi://pay?pa=${upiId}&pn=${merchantName}&am=${amount}&cu=INR&tn=Tournament Entry Fee`;
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${merchantName}&am=${amount}&cu=INR&tn=${description || 'Tournament Entry Fee'}`;
 
   // Generate QR code using QR Server API
   useEffect(() => {
@@ -136,7 +136,7 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
                 
                 <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 p-3 rounded-lg">
                   <p className="text-white font-medium text-sm">Amount: ₹{amount}</p>
-                  <p className="text-gray-300 text-xs">Tournament Entry Fee</p>
+                  <p className="text-gray-300 text-xs">{description || 'Tournament Entry Fee'}</p>
                 </div>
               </CardContent>
             </Card>
