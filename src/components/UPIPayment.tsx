@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QrCode, Copy, Check, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,11 +16,20 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
   const [transactionId, setTransactionId] = useState('');
   const [copied, setCopied] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const { toast } = useToast();
 
   // UPI payment details
   const upiId = 'vik657@axl';
-  const upiUrl = `upi://pay?pa=${upiId}&pn=FireTourneys&am=${amount}&cu=INR&tn=Tournament Entry Fee`;
+  const merchantName = 'FireTourneys';
+  const upiUrl = `upi://pay?pa=${upiId}&pn=${merchantName}&am=${amount}&cu=INR&tn=Tournament Entry Fee`;
+
+  // Generate QR code using QR Server API
+  useEffect(() => {
+    const qrData = encodeURIComponent(upiUrl);
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
+    setQrCodeDataUrl(qrCodeUrl);
+  }, [upiUrl]);
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText(upiId);
@@ -66,12 +75,27 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
       <Card className="bg-black/20 border border-cyan-500/20">
         <CardContent className="p-4 text-center">
           <div className="bg-white p-3 rounded-lg inline-block mb-3">
-            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <QrCode className="w-16 h-16 mx-auto mb-1 text-gray-600" />
-                <p className="text-xs text-gray-600">QR Code for ₹{amount}</p>
+            {qrCodeDataUrl ? (
+              <img 
+                src={qrCodeDataUrl} 
+                alt="UPI Payment QR Code" 
+                className="w-32 h-32 rounded-lg"
+                onError={() => {
+                  toast({
+                    title: "QR Code Error",
+                    description: "Unable to load QR code. Please use UPI ID manually.",
+                    variant: "destructive"
+                  });
+                }}
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <QrCode className="w-16 h-16 mx-auto mb-1 text-gray-600" />
+                  <p className="text-xs text-gray-600">Loading QR...</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           <div className="space-y-3">

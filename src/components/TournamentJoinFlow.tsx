@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trophy, Users, Clock, MapPin, CheckCircle } from 'lucide-react';
+import { X, Trophy, Users, Clock, MapPin, CheckCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,6 +50,12 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
 
   const handleJoinClick = () => {
     if (!isAuthenticated) {
+      // Show authentication required message
+      toast({
+        title: "Authentication Required",
+        description: "Please sign up or login to join tournaments",
+        variant: "destructive"
+      });
       setShowLoginModal(true);
       return;
     }
@@ -57,7 +63,12 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   };
 
   const handleLoginSuccess = () => {
+    setShowLoginModal(false);
     setStep(2);
+    toast({
+      title: "Welcome!",
+      description: "You can now proceed to join the tournament",
+    });
   };
 
   const handleGameDetailsSubmit = () => {
@@ -86,6 +97,8 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   };
 
   const handleJoinComplete = () => {
+    const slotNumber = Math.floor(Math.random() * 64) + 1;
+    
     // Store match history
     const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
     const newMatch = {
@@ -95,7 +108,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
       paymentData: isFree ? null : paymentData,
       joinedAt: new Date().toISOString(),
       userId: user?.id,
-      slotNumber: Math.floor(Math.random() * 64) + 1
+      slotNumber: slotNumber
     };
     matchHistory.push(newMatch);
     localStorage.setItem('matchHistory', JSON.stringify(matchHistory));
@@ -105,12 +118,28 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     userActivity.push({
       userId: user?.id,
       userName: user?.name,
+      userEmail: user?.email,
       action: 'joined_tournament',
       tournamentId: tournament.id,
       tournamentName: tournament.title,
+      slotNumber: slotNumber,
       timestamp: new Date().toISOString()
     });
     localStorage.setItem('userActivity', JSON.stringify(userActivity));
+
+    // Update tournament slots
+    const tournamentData = JSON.parse(localStorage.getItem('tournaments') || '[]');
+    const updatedTournaments = tournamentData.map((t: any) => {
+      if (t.id === tournament.id) {
+        const [current, total] = t.players.split('/').map(Number);
+        return {
+          ...t,
+          players: `${current + 1}/${total}`
+        };
+      }
+      return t;
+    });
+    localStorage.setItem('tournaments', JSON.stringify(updatedTournaments));
 
     setStep(4);
   };
@@ -128,6 +157,18 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
         <h3 className="text-xl font-bold text-white mb-2">{tournament.title}</h3>
         <p className="text-cyan-400 text-sm">{tournament.type} Tournament</p>
       </div>
+
+      {!isAuthenticated && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 mb-2">
+            <UserPlus className="w-4 h-4 text-yellow-400" />
+            <p className="text-yellow-400 text-sm font-medium">Authentication Required</p>
+          </div>
+          <p className="text-gray-300 text-xs">
+            You need to sign up or login before joining any tournament. This helps us maintain fair play and communicate with you.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-black/20 p-3 rounded-lg">
@@ -180,7 +221,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
         onClick={handleJoinClick}
         className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
       >
-        {isAuthenticated ? 'Proceed to Join' : 'Login & Join Tournament'}
+        {isAuthenticated ? 'Proceed to Join' : 'Sign Up / Login to Join'}
       </Button>
     </div>
   );
@@ -280,63 +321,67 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     />
   );
 
-  const renderStep4 = () => (
-    <div className="space-y-6 text-center">
-      <div className="flex justify-center">
-        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-          <CheckCircle className="w-12 h-12 text-green-400" />
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-2xl font-bold text-white mb-2">Successfully Joined!</h3>
-        <p className="text-gray-300">You've successfully joined this tournament</p>
-      </div>
-
-      <div className="bg-black/20 p-4 rounded-lg space-y-3">
-        <div className="flex justify-between">
-          <span className="text-gray-300">Slot Number:</span>
-          <span className="text-cyan-400 font-bold">#12</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-300">Match Date:</span>
-          <span className="text-white">{new Date(tournament.startTime).toLocaleDateString()}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-gray-300">Match Time:</span>
-          <span className="text-white">{new Date(tournament.startTime).toLocaleTimeString()}</span>
-        </div>
-        {!isFree && paymentData.transactionId && (
-          <div className="flex justify-between">
-            <span className="text-gray-300">Transaction ID:</span>
-            <span className="text-green-400 font-mono text-sm">{paymentData.transactionId}</span>
+  const renderStep4 = () => {
+    const slotNumber = JSON.parse(localStorage.getItem('matchHistory') || '[]').slice(-1)[0]?.slotNumber || 12;
+    
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex justify-center">
+          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-12 h-12 text-green-400" />
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg">
-        <p className="text-cyan-300 text-sm">
-          🎮 Room ID & Password will be sent 15 minutes before the match starts. Check your WhatsApp group!
-        </p>
-      </div>
+        <div>
+          <h3 className="text-2xl font-bold text-white mb-2">Successfully Joined!</h3>
+          <p className="text-gray-300">You've successfully joined this tournament</p>
+        </div>
 
-      <div className="flex gap-3">
-        <Button 
-          onClick={handleClose}
-          className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
-        >
-          Go to My Matches
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={handleClose}
-          className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
-        >
-          Join Another Match
-        </Button>
+        <div className="bg-black/20 p-4 rounded-lg space-y-3">
+          <div className="flex justify-between">
+            <span className="text-gray-300">Slot Number:</span>
+            <span className="text-cyan-400 font-bold">#{slotNumber}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-300">Match Date:</span>
+            <span className="text-white">{new Date(tournament.startTime).toLocaleDateString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-300">Match Time:</span>
+            <span className="text-white">{new Date(tournament.startTime).toLocaleTimeString()}</span>
+          </div>
+          {!isFree && paymentData.transactionId && (
+            <div className="flex justify-between">
+              <span className="text-gray-300">Transaction ID:</span>
+              <span className="text-green-400 font-mono text-sm">{paymentData.transactionId}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-lg">
+          <p className="text-cyan-300 text-sm">
+            🎮 Room ID & Password will be sent 15 minutes before the match starts. Check your WhatsApp group!
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button 
+            onClick={handleClose}
+            className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+          >
+            Go to My Matches
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={handleClose}
+            className="flex-1 border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
+          >
+            Join Another Match
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const content = (
     <div className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">

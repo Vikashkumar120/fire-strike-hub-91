@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Clock, Star, Filter, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,8 +14,10 @@ const Tournaments = () => {
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [isJoinFlowOpen, setIsJoinFlowOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [tournaments, setTournaments] = useState([]);
 
-  const tournaments = [
+  // Default tournaments + Admin created tournaments
+  const defaultTournaments = [
     {
       id: 1,
       title: "Squad Showdown Championship",
@@ -89,6 +92,15 @@ const Tournaments = () => {
     }
   ];
 
+  useEffect(() => {
+    // Load tournaments from localStorage (admin created) and merge with defaults
+    const storedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
+    const allTournaments = [...defaultTournaments, ...storedTournaments];
+    setTournaments(allTournaments);
+    
+    console.log('Loaded tournaments:', allTournaments);
+  }, []);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'text-green-400 bg-green-400/10';
@@ -113,6 +125,11 @@ const Tournaments = () => {
   const handleCloseJoinFlow = () => {
     setIsJoinFlowOpen(false);
     setSelectedTournament(null);
+    
+    // Refresh tournaments to show updated player counts
+    const storedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
+    const allTournaments = [...defaultTournaments, ...storedTournaments];
+    setTournaments(allTournaments);
   };
 
   return (
