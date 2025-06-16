@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 const MatchResultsManagement = () => {
@@ -29,23 +28,28 @@ const MatchResultsManagement = () => {
 
   const loadMatches = () => {
     // Load match data from localStorage
-    const storedMatches = JSON.parse(localStorage.getItem('matchResults') || '[]');
     const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
     
-    // Combine tournament data with join history
-    const enhancedMatches = storedMatches.map(match => {
-      const joinedUsers = matchHistory.filter(history => 
-        history.tournament.id === match.tournamentId
-      );
-      
-      return {
-        ...match,
-        joinedUsers,
-        totalUsers: joinedUsers.length
-      };
-    });
+    // Group by tournament/match
+    const matchGroups = matchHistory.reduce((acc, match) => {
+      const tournamentId = match.tournament.id;
+      if (!acc[tournamentId]) {
+        acc[tournamentId] = {
+          id: tournamentId,
+          matchName: match.tournament.title,
+          tournamentType: match.tournament.type,
+          map: match.tournament.map || 'Bermuda',
+          prizePool: match.tournament.prize?.replace(/[₹,]/g, '') || '0',
+          startTime: match.tournament.startTime,
+          entryFee: match.tournament.entryFee || 0,
+          joinedUsers: []
+        };
+      }
+      acc[tournamentId].joinedUsers.push(match);
+      return acc;
+    }, {});
     
-    setMatches(enhancedMatches);
+    setMatches(Object.values(matchGroups));
   };
 
   const markResult = (matchId, userId, result) => {
@@ -57,16 +61,14 @@ const MatchResultsManagement = () => {
           }
           return user;
         });
-        
         return { ...match, joinedUsers: updatedUsers };
       }
       return match;
     });
     
     setMatches(updatedMatches);
-    localStorage.setItem('matchResults', JSON.stringify(updatedMatches));
     
-    // Update user's match history
+    // Update match history in localStorage
     const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
     const updatedHistory = matchHistory.map(history => {
       if (history.tournament.id === matchId && history.id === userId) {
@@ -75,6 +77,31 @@ const MatchResultsManagement = () => {
       return history;
     });
     localStorage.setItem('matchHistory', JSON.stringify(updatedHistory));
+    
+    // If winner, add prize to user's wallet
+    if (result === 'winner') {
+      const user = matches.find(m => m.id === matchId)?.joinedUsers.find(u => u.id === userId);
+      if (user) {
+        const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+        const userWallet = walletData[user.id] || { balance: 0, transactions: [] };
+        const prizeAmount = parseInt(matches.find(m => m.id === matchId)?.prizePool || '0');
+        
+        if (prizeAmount > 0) {
+          userWallet.balance += prizeAmount;
+          userWallet.transactions.push({
+            id: Date.now().toString(),
+            type: 'prize',
+            amount: prizeAmount,
+            description: `Prize for winning ${matches.find(m => m.id === matchId)?.matchName}`,
+            timestamp: new Date().toISOString(),
+            status: 'completed'
+          });
+          
+          walletData[user.id] = userWallet;
+          localStorage.setItem('walletData', JSON.stringify(walletData));
+        }
+      }
+    }
     
     toast({
       title: "Result Updated",
@@ -90,11 +117,11 @@ const MatchResultsManagement = () => {
 
   const getResultBadge = (result) => {
     if (result === 'winner') {
-      return <Badge className="bg-green-500/20 text-green-400">WINNER</Badge>;
+      return <Badge className="bg-green-500/20 text-green-400">🏆 WINNER</Badge>;
     } else if (result === 'loss') {
-      return <Badge className="bg-red-500/20 text-red-400">LOSS</Badge>;
+      return <Badge className="bg-red-500/20 text-red-400">❌ LOSS</Badge>;
     }
-    return <Badge className="bg-yellow-500/20 text-yellow-400">PENDING</Badge>;
+    return <Badge className="bg-yellow-500/20 text-yellow-400">⏳ PENDING</Badge>;
   };
 
   if (selectedMatch) {
@@ -118,7 +145,7 @@ const MatchResultsManagement = () => {
                 <Users className="w-5 h-5 text-cyan-400" />
                 <div>
                   <p className="text-gray-300 text-sm">Total Joined</p>
-                  <p className="text-white text-xl font-bold">{selectedMatch.totalUsers}</p>
+                  <p className="text-white text-xl font-bold">{selectedMatch.joinedUsers.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -155,7 +182,7 @@ const MatchResultsManagement = () => {
 
         <Card className="bg-black/30 border-purple-500/20">
           <CardHeader>
-            <CardTitle className="text-white">Registered Players</CardTitle>
+            <CardTitle className="text-white">Joined Players ({selectedMatch.joinedUsers.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -172,17 +199,20 @@ const MatchResultsManagement = () => {
                         </div>
                         
                         <div>
-                          <p className="text-gray-300 text-sm">Joined On</p>
+                          <p className="text-gray-300 text-sm">Join Details</p>
                           <p className="text-white">{new Date(user.joinedAt).toLocaleString()}</p>
                           <p className="text-gray-400 text-sm">Slot: #{user.slotNumber}</p>
+                          <p className="text-green-400 text-sm">Fee: ₹{selectedMatch.entryFee}</p>
                         </div>
 
                         <div>
-                          <p className="text-gray-300 text-sm">Payment</p>
-                          <p className="text-green-400">₹{user.tournament.entryFee}</p>
+                          <p className="text-gray-300 text-sm">Payment Info</p>
                           {user.paymentData && (
                             <p className="text-gray-400 text-xs">ID: {user.paymentData.transactionId}</p>
                           )}
+                          <p className="text-gray-400 text-xs">
+                            Method: {user.paymentMethod || 'UPI'}
+                          </p>
                         </div>
                       </div>
 
@@ -270,7 +300,7 @@ const MatchResultsManagement = () => {
                       <Users className="w-4 h-4 text-cyan-400" />
                       <div>
                         <p className="text-gray-300">Players</p>
-                        <p className="text-white font-medium">{match.totalUsers}</p>
+                        <p className="text-white font-medium">{match.joinedUsers.length}</p>
                       </div>
                     </div>
 
@@ -315,7 +345,7 @@ const MatchResultsManagement = () => {
                   
                   <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-purple-600">
                     <Eye className="w-4 h-4 mr-1" />
-                    Manage
+                    Open Folder
                   </Button>
                 </div>
               </div>

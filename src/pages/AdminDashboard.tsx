@@ -163,7 +163,6 @@ const AdminDashboard = () => {
 
   const handleWithdrawalAction = (transactionId: string, action: 'approve' | 'reject') => {
     const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
     
     const updatedTransactions = transactions.map((transaction: any) => {
       if (transaction.id === transactionId && transaction.type === 'withdraw') {
@@ -185,36 +184,62 @@ const AdminDashboard = () => {
     const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
     const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
     
-    const updatedTransactions = transactions.map((transaction: any) => {
-      if (transaction.id === transactionId && transaction.type === 'deposit') {
-        const updatedTransaction = { ...transaction, status: action === 'approve' ? 'completed' : 'failed' };
+    const transaction = transactions.find((t: any) => t.id === transactionId && t.type === 'deposit');
+    
+    if (!transaction) {
+      toast({
+        title: "Error",
+        description: "Transaction not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const updatedTransactions = transactions.map((t: any) => {
+      if (t.id === transactionId && t.type === 'deposit') {
+        const updatedTransaction = { ...t, status: action === 'approve' ? 'completed' : 'failed' };
         
         // Update user wallet balance if approved
-        if (action === 'approve' && transaction.userId) {
-          const userWallet = walletData[transaction.userId] || { balance: 0, transactions: [] };
-          userWallet.balance += transaction.amount;
+        if (action === 'approve' && t.userId) {
+          const userWallet = walletData[t.userId] || { balance: 0, transactions: [] };
+          userWallet.balance += Number(t.amount);
           
           // Update user's transaction status
-          userWallet.transactions = userWallet.transactions.map((t: any) => 
-            t.id === transactionId ? { ...t, status: 'completed' } : t
+          userWallet.transactions = userWallet.transactions.map((userTx: any) => 
+            userTx.id === transactionId ? { ...userTx, status: 'completed' } : userTx
           );
           
-          walletData[transaction.userId] = userWallet;
+          walletData[t.userId] = userWallet;
           localStorage.setItem('walletData', JSON.stringify(walletData));
+          
+          toast({
+            title: "Deposit Approved",
+            description: `₹${t.amount} added to ${t.userName}'s wallet`,
+          });
+        } else if (action === 'reject') {
+          // Update user's transaction status to failed
+          if (t.userId && walletData[t.userId]) {
+            const userWallet = walletData[t.userId];
+            userWallet.transactions = userWallet.transactions.map((userTx: any) => 
+              userTx.id === transactionId ? { ...userTx, status: 'failed' } : userTx
+            );
+            walletData[t.userId] = userWallet;
+            localStorage.setItem('walletData', JSON.stringify(walletData));
+          }
+          
+          toast({
+            title: "Deposit Rejected",
+            description: `Deposit request for ${t.userName} has been rejected`,
+          });
         }
         
         return updatedTransaction;
       }
-      return transaction;
+      return t;
     });
 
     localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
     setAdminTransactions(updatedTransactions);
-
-    toast({
-      title: action === 'approve' ? "Deposit Approved" : "Deposit Rejected",
-      description: `Transaction has been ${action}d successfully`,
-    });
   };
 
   const sendNotification = () => {
@@ -510,7 +535,7 @@ const AdminDashboard = () => {
 
   const renderWalletTransactions = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Wallet Transactions</h2>
+      <h2 className="text-2xl font-bold text-white">Wallet Transactions & Deposit Approvals</h2>
       
       <div className="grid gap-4">
         {adminTransactions.filter((t: any) => t.type === 'deposit' || t.type === 'withdraw').map((transaction: any) => (
@@ -534,6 +559,7 @@ const AdminDashboard = () => {
                     <div>
                       <p className="text-gray-300">Amount: <span className="text-white font-medium">₹{transaction.amount}</span></p>
                       <p className="text-gray-300">User: <span className="text-cyan-400">{transaction.userEmail}</span></p>
+                      <p className="text-gray-300">User ID: <span className="text-purple-400">{transaction.userId}</span></p>
                     </div>
                     <div>
                       <p className="text-gray-300">Date: <span className="text-white">{new Date(transaction.timestamp).toLocaleString()}</span></p>
@@ -577,7 +603,7 @@ const AdminDashboard = () => {
                         className="bg-green-600 hover:bg-green-700"
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        Add to Wallet
                       </Button>
                       <Button 
                         size="sm" 
@@ -611,6 +637,12 @@ const AdminDashboard = () => {
                         Reject
                       </Button>
                     </>
+                  )}
+
+                  {transaction.status === 'completed' && transaction.type === 'deposit' && (
+                    <Badge className="bg-green-500/20 text-green-400">
+                      ✅ Added to Wallet
+                    </Badge>
                   )}
                 </div>
               </div>
