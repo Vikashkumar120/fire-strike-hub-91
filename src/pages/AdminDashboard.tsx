@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -15,7 +14,7 @@ import {
   Bell,
   Settings,
   LogOut,
-  Wallet,
+  Wallet as WalletIcon,
   ArrowUpCircle,
   ArrowDownCircle
 } from 'lucide-react';
@@ -62,11 +61,6 @@ const AdminDashboard = () => {
     map: 'Bermuda',
     date: ''
   });
-
-  const [withdrawals] = useState([
-    { id: 1, user: "Player123", amount: 500, upi: "player@paytm", status: "pending", date: "2024-01-15" },
-    { id: 2, user: "Gamer456", amount: 250, upi: "gamer@phonepe", status: "approved", date: "2024-01-14" }
-  ]);
 
   const { toast } = useToast();
 
@@ -132,10 +126,23 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleWithdrawalAction = (id: number, action: 'approve' | 'reject') => {
+  const handleWithdrawalAction = (transactionId: string, action: 'approve' | 'reject') => {
+    const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    
+    const updatedTransactions = transactions.map((transaction: any) => {
+      if (transaction.id === transactionId && transaction.type === 'withdraw') {
+        return { ...transaction, status: action === 'approve' ? 'completed' : 'failed' };
+      }
+      return transaction;
+    });
+
+    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+    setAdminTransactions(updatedTransactions);
+
     toast({
       title: action === 'approve' ? "Withdrawal Approved" : "Withdrawal Rejected",
-      description: `Withdrawal request ${id} has been ${action}d`,
+      description: `Withdrawal request has been ${action}d successfully`,
     });
   };
 
@@ -192,7 +199,7 @@ const AdminDashboard = () => {
             <Users className="h-4 w-4 text-cyan-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{userActivity.filter(a => a.action === 'login').length}</div>
+            <div className="text-2xl font-bold text-white">{userActivity.filter((a: any) => a.action === 'login').length}</div>
             <p className="text-xs text-green-400">Active users</p>
           </CardContent>
         </Card>
@@ -225,7 +232,7 @@ const AdminDashboard = () => {
             <TrendingUp className="h-4 w-4 text-orange-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{userActivity.filter(a => a.action === 'joined_tournament').length}</div>
+            <div className="text-2xl font-bold text-white">{userActivity.filter((a: any) => a.action === 'joined_tournament').length}</div>
             <p className="text-xs text-orange-400">Total joins</p>
           </CardContent>
         </Card>
@@ -238,16 +245,24 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3 max-h-64 overflow-y-auto">
-            {userActivity.slice(-10).reverse().map((activity, index) => (
+            {userActivity.slice(-10).reverse().map((activity: any, index: number) => (
               <div key={index} className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
                 <div>
                   <p className="text-white font-medium">
                     {activity.action === 'login' ? 'User logged in' : 
-                     activity.action === 'joined_tournament' ? 'Joined tournament' : activity.action}
+                     activity.action === 'joined_tournament' ? `Joined tournament: ${activity.tournamentName}` : 
+                     activity.action}
                   </p>
                   <p className="text-gray-400 text-sm">
-                    {activity.userName || activity.name} - {activity.tournamentName || ''}
+                    {activity.userName || activity.name} - {activity.userEmail || ''}
                   </p>
+                  {activity.tournamentDetails && (
+                    <div className="text-gray-500 text-xs mt-1">
+                      <p>UID: {activity.tournamentDetails.uid}</p>
+                      <p>Team Name: {activity.tournamentDetails.teamName}</p>
+                      <p>Entry Fee: ₹{activity.tournamentDetails.entryFee}</p>
+                    </div>
+                  )}
                   <p className="text-gray-500 text-xs">{new Date(activity.timestamp).toLocaleString()}</p>
                 </div>
                 <Badge className={activity.action === 'login' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}>
@@ -406,15 +421,15 @@ const AdminDashboard = () => {
       <h2 className="text-2xl font-bold text-white">Withdrawal Management</h2>
       
       <div className="grid gap-4">
-        {withdrawals.map((withdrawal) => (
+        {adminTransactions.filter((t: any) => t.type === 'withdraw').map((withdrawal: any) => (
           <Card key={withdrawal.id} className="bg-black/30 border-purple-500/20">
             <CardContent className="p-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-white font-medium">{withdrawal.user}</h3>
+                  <h3 className="text-white font-medium">{withdrawal.userName}</h3>
                   <p className="text-gray-300 text-sm">Amount: ₹{withdrawal.amount}</p>
-                  <p className="text-gray-300 text-sm">UPI: {withdrawal.upi}</p>
-                  <p className="text-gray-400 text-xs">Date: {withdrawal.date}</p>
+                  <p className="text-gray-300 text-sm">Email: {withdrawal.userEmail}</p>
+                  <p className="text-gray-400 text-xs">Date: {new Date(withdrawal.timestamp).toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
                   {withdrawal.status === 'pending' ? (
@@ -438,7 +453,7 @@ const AdminDashboard = () => {
                       </Button>
                     </>
                   ) : (
-                    <Badge className={withdrawal.status === 'approved' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
+                    <Badge className={withdrawal.status === 'completed' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}>
                       {withdrawal.status}
                     </Badge>
                   )}
@@ -447,6 +462,13 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         ))}
+        
+        {adminTransactions.filter((t: any) => t.type === 'withdraw').length === 0 && (
+          <div className="text-center py-12">
+            <WalletIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-400 text-lg">No withdrawal requests yet</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -504,7 +526,8 @@ const AdminDashboard = () => {
                       <img 
                         src={transaction.screenshot} 
                         alt="Payment Screenshot" 
-                        className="max-w-32 h-24 rounded-lg border border-gray-600"
+                        className="max-w-32 h-24 rounded-lg border border-gray-600 cursor-pointer hover:scale-105 transition-transform"
+                        onClick={() => window.open(transaction.screenshot, '_blank')}
                       />
                     </div>
                   )}
@@ -562,7 +585,7 @@ const AdminDashboard = () => {
         
         {adminTransactions.filter((t: any) => t.type === 'deposit' || t.type === 'withdraw').length === 0 && (
           <div className="text-center py-12">
-            <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <WalletIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-400 text-lg">No wallet transactions yet</p>
           </div>
         )}

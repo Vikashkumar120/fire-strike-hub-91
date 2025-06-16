@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Trophy, 
-  Wallet, 
+  Wallet as WalletIcon, 
   Calendar, 
   Settings, 
   Bell, 
@@ -12,26 +11,67 @@ import {
   Star,
   Plus,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Minus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import Wallet from '@/components/Wallet';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-
-  const userStats = {
+  const [balance, setBalance] = useState(0);
+  const [showWallet, setShowWallet] = useState(false);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [profileData, setProfileData] = useState({
     name: "ProGamer_21",
     uid: "FF123456789",
+    email: "player@example.com",
+    phone: "+91 9876543210"
+  });
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const userStats = {
+    name: profileData.name,
+    uid: profileData.uid,
     level: 45,
-    walletBalance: 2450,
+    walletBalance: balance,
     totalEarnings: 15680,
     tournamentsWon: 12,
     totalMatches: 47,
     winRate: 68,
     currentRank: 156
+  };
+
+  useEffect(() => {
+    // Load wallet balance from localStorage
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    const userWallet = walletData[user?.id || ''] || { balance: 0, transactions: [] };
+    setBalance(userWallet.balance);
+
+    // Load profile data
+    const savedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    if (savedProfile[user?.id || '']) {
+      setProfileData(savedProfile[user?.id || '']);
+    }
+  }, [user]);
+
+  const handleProfileSave = () => {
+    const savedProfiles = JSON.parse(localStorage.getItem('userProfile') || '{}');
+    savedProfiles[user?.id || ''] = profileData;
+    localStorage.setItem('userProfile', JSON.stringify(savedProfiles));
+    
+    toast({
+      title: "Profile Updated!",
+      description: "Your profile has been saved successfully.",
+    });
+    setShowProfileEdit(false);
   };
 
   const recentMatches = [
@@ -105,6 +145,10 @@ const Dashboard = () => {
     }
   ];
 
+  if (showWallet) {
+    return <Wallet />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
@@ -119,10 +163,14 @@ const Dashboard = () => {
             </Link>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-black/20 rounded-lg px-3 py-2">
-                <Wallet className="w-4 h-4 text-cyan-400" />
-                <span className="text-white font-medium">₹{userStats.walletBalance}</span>
+                <WalletIcon className="w-4 h-4 text-cyan-400" />
+                <span className="text-white font-medium">₹{balance}</span>
               </div>
-              <Button size="sm" className="bg-gradient-to-r from-cyan-500 to-purple-600">
+              <Button 
+                size="sm" 
+                className="bg-gradient-to-r from-cyan-500 to-purple-600"
+                onClick={() => setShowWallet(true)}
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 Add Money
               </Button>
@@ -290,16 +338,24 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-center mb-6">
-                  <div className="text-4xl font-bold text-cyan-400 mb-2">₹{userStats.walletBalance}</div>
+                  <div className="text-4xl font-bold text-cyan-400 mb-2">₹{balance}</div>
                   <p className="text-gray-300">Available Balance</p>
                 </div>
                 
                 <div className="flex gap-4 justify-center mb-6">
-                  <Button className="bg-gradient-to-r from-green-500 to-emerald-600">
+                  <Button 
+                    className="bg-gradient-to-r from-green-500 to-emerald-600"
+                    onClick={() => setShowWallet(true)}
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Money
                   </Button>
-                  <Button variant="outline" className="border-gray-600 text-gray-300">
+                  <Button 
+                    variant="outline" 
+                    className="border-gray-600 text-gray-300"
+                    onClick={() => setShowWallet(true)}
+                  >
+                    <Minus className="w-4 h-4 mr-2" />
                     Withdraw
                   </Button>
                 </div>
@@ -337,32 +393,97 @@ const Dashboard = () => {
                 <CardTitle className="text-white">Profile Settings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-gray-300 text-sm">Username</label>
-                      <div className="text-white font-medium">{userStats.name}</div>
+                {!showProfileEdit ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-gray-300 text-sm">Username</label>
+                        <div className="text-white font-medium">{profileData.name}</div>
+                      </div>
+                      <div>
+                        <label className="text-gray-300 text-sm">Free Fire UID</label>
+                        <div className="text-white font-medium">{profileData.uid}</div>
+                      </div>
+                      <div>
+                        <label className="text-gray-300 text-sm">Email</label>
+                        <div className="text-white font-medium">{profileData.email}</div>
+                      </div>
+                      <div>
+                        <label className="text-gray-300 text-sm">Phone</label>
+                        <div className="text-white font-medium">{profileData.phone}</div>
+                      </div>
+                      <div>
+                        <label className="text-gray-300 text-sm">Current Level</label>
+                        <div className="text-cyan-400 font-medium">Level {userStats.level}</div>
+                      </div>
+                      <div>
+                        <label className="text-gray-300 text-sm">Current Rank</label>
+                        <div className="text-yellow-400 font-medium">#{userStats.currentRank}</div>
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-gray-300 text-sm">Free Fire UID</label>
-                      <div className="text-white font-medium">{userStats.uid}</div>
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm">Current Level</label>
-                      <div className="text-cyan-400 font-medium">Level {userStats.level}</div>
-                    </div>
-                    <div>
-                      <label className="text-gray-300 text-sm">Current Rank</label>
-                      <div className="text-yellow-400 font-medium">#{userStats.currentRank}</div>
+                    <div className="pt-4">
+                      <Button 
+                        className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+                        onClick={() => setShowProfileEdit(true)}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Edit Profile
+                      </Button>
                     </div>
                   </div>
-                  <div className="pt-4">
-                    <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Edit Profile
-                    </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">Username</label>
+                        <Input
+                          value={profileData.name}
+                          onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                          className="bg-black/20 border-gray-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">Free Fire UID</label>
+                        <Input
+                          value={profileData.uid}
+                          onChange={(e) => setProfileData({...profileData, uid: e.target.value})}
+                          className="bg-black/20 border-gray-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">Email</label>
+                        <Input
+                          value={profileData.email}
+                          onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                          className="bg-black/20 border-gray-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-2">Phone</label>
+                        <Input
+                          value={profileData.phone}
+                          onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                          className="bg-black/20 border-gray-600 text-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 pt-4">
+                      <Button 
+                        onClick={handleProfileSave}
+                        className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
+                      >
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowProfileEdit(false)}
+                        className="border-gray-600 text-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
