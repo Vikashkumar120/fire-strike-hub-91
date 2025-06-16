@@ -13,7 +13,10 @@ import {
   XCircle,
   Bell,
   Settings,
-  LogOut
+  LogOut,
+  wallet,
+  ArrowUpCircle,
+  ArrowDownCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [userActivity, setUserActivity] = useState([]);
+  const [adminTransactions, setAdminTransactions] = useState([]);
   const [tournaments, setTournaments] = useState([
     {
       id: 1,
@@ -66,9 +70,11 @@ const AdminDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load user activity from localStorage
+    // Load user activity and admin transactions from localStorage
     const activity = JSON.parse(localStorage.getItem('userActivity') || '[]');
+    const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
     setUserActivity(activity);
+    setAdminTransactions(transactions);
   }, [activeTab]);
 
   const handleCreateTournament = () => {
@@ -129,6 +135,42 @@ const AdminDashboard = () => {
     toast({
       title: action === 'approve' ? "Withdrawal Approved" : "Withdrawal Rejected",
       description: `Withdrawal request ${id} has been ${action}d`,
+    });
+  };
+
+  const handleDepositApproval = (transactionId: string, action: 'approve' | 'reject') => {
+    const transactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    
+    const updatedTransactions = transactions.map((transaction: any) => {
+      if (transaction.id === transactionId && transaction.type === 'deposit') {
+        const updatedTransaction = { ...transaction, status: action === 'approve' ? 'completed' : 'failed' };
+        
+        // Update user wallet balance if approved
+        if (action === 'approve' && transaction.userId) {
+          const userWallet = walletData[transaction.userId] || { balance: 0, transactions: [] };
+          userWallet.balance += transaction.amount;
+          
+          // Update user's transaction status
+          userWallet.transactions = userWallet.transactions.map((t: any) => 
+            t.id === transactionId ? { ...t, status: 'completed' } : t
+          );
+          
+          walletData[transaction.userId] = userWallet;
+          localStorage.setItem('walletData', JSON.stringify(walletData));
+        }
+        
+        return updatedTransaction;
+      }
+      return transaction;
+    });
+
+    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+    setAdminTransactions(updatedTransactions);
+
+    toast({
+      title: action === 'approve' ? "Deposit Approved" : "Deposit Rejected",
+      description: `Transaction has been ${action}d successfully`,
     });
   };
 
@@ -408,6 +450,125 @@ const AdminDashboard = () => {
     </div>
   );
 
+  const renderWalletTransactions = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-white">Wallet Transactions</h2>
+      
+      <div className="grid gap-4">
+        {adminTransactions.filter((t: any) => t.type === 'deposit' || t.type === 'withdraw').map((transaction: any) => (
+          <Card key={transaction.id} className="bg-black/30 border-purple-500/20">
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-2">
+                    {transaction.type === 'deposit' ? (
+                      <ArrowDownCircle className="w-5 h-5 text-green-400" />
+                    ) : (
+                      <ArrowUpCircle className="w-5 h-5 text-orange-400" />
+                    )}
+                    <h3 className="text-white font-medium">{transaction.userName}</h3>
+                    <Badge className={transaction.type === 'deposit' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}>
+                      {transaction.type}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-300">Amount: <span className="text-white font-medium">₹{transaction.amount}</span></p>
+                      <p className="text-gray-300">User: <span className="text-cyan-400">{transaction.userEmail}</span></p>
+                    </div>
+                    <div>
+                      <p className="text-gray-300">Date: <span className="text-white">{new Date(transaction.timestamp).toLocaleString()}</span></p>
+                      <p className="text-gray-300">Status: 
+                        <Badge className={
+                          transaction.status === 'completed' ? 'bg-green-500/20 text-green-400 ml-2' :
+                          transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 ml-2' : 
+                          'bg-red-500/20 text-red-400 ml-2'
+                        }>
+                          {transaction.status}
+                        </Badge>
+                      </p>
+                    </div>
+                  </div>
+
+                  {transaction.transactionId && (
+                    <p className="text-gray-300 text-sm mt-2">
+                      Transaction ID: <span className="text-cyan-400 font-mono">{transaction.transactionId}</span>
+                    </p>
+                  )}
+
+                  {transaction.screenshot && (
+                    <div className="mt-3">
+                      <p className="text-gray-300 text-sm mb-2">Payment Screenshot:</p>
+                      <img 
+                        src={transaction.screenshot} 
+                        alt="Payment Screenshot" 
+                        className="max-w-32 h-24 rounded-lg border border-gray-600"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2 ml-4">
+                  {transaction.status === 'pending' && transaction.type === 'deposit' && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleDepositApproval(transaction.id, 'approve')}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleDepositApproval(transaction.id, 'reject')}
+                        className="border-red-600 text-red-400"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  
+                  {transaction.status === 'pending' && transaction.type === 'withdraw' && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleWithdrawalAction(transaction.id, 'approve')}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Process
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => handleWithdrawalAction(transaction.id, 'reject')}
+                        className="border-red-600 text-red-400"
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        
+        {adminTransactions.filter((t: any) => t.type === 'deposit' || t.type === 'withdraw').length === 0 && (
+          <div className="text-center py-12">
+            <wallet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-400 text-lg">No wallet transactions yet</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const renderNotifications = () => (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-white">Push Notifications</h2>
@@ -480,6 +641,7 @@ const AdminDashboard = () => {
             { id: 'dashboard', label: 'Dashboard' },
             { id: 'tournaments', label: 'Tournaments' },
             { id: 'withdrawals', label: 'Withdrawals' },
+            { id: 'wallet', label: 'Wallet Transactions' },
             { id: 'notifications', label: 'Notifications' }
           ].map((tab) => (
             <button
@@ -500,6 +662,7 @@ const AdminDashboard = () => {
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'tournaments' && renderTournaments()}
         {activeTab === 'withdrawals' && renderWithdrawals()}
+        {activeTab === 'wallet' && renderWalletTransactions()}
         {activeTab === 'notifications' && renderNotifications()}
       </div>
     </div>

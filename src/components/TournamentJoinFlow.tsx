@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { X, Trophy, Users, Clock, MapPin, CheckCircle, UserPlus } from 'lucide-react';
+import { X, Trophy, Users, Clock, MapPin, CheckCircle, UserPlus, wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,6 +33,7 @@ interface TournamentJoinFlowProps {
 const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: TournamentJoinFlowProps) => {
   const [step, setStep] = useState(1);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'upi' | null>(null);
   const [gameDetails, setGameDetails] = useState({
     gameName: '',
     uid: '',
@@ -40,17 +42,27 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   });
   const [paymentData, setPaymentData] = useState({
     transactionId: '',
-    amount: 0
+    amount: 0,
+    screenshot: ''
   });
+  const [walletBalance, setWalletBalance] = useState(0);
   const { toast } = useToast();
   const { isAuthenticated, user } = useAuth();
 
   const entryFeeAmount = parseInt(tournament.entryFee.replace('₹', '')) || 0;
   const isFree = entryFeeAmount === 0;
 
+  React.useEffect(() => {
+    // Load wallet balance
+    if (user) {
+      const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+      const userWallet = walletData[user.id] || { balance: 0 };
+      setWalletBalance(userWallet.balance);
+    }
+  }, [user]);
+
   const handleJoinClick = () => {
     if (!isAuthenticated) {
-      // Show authentication required message
       toast({
         title: "Authentication Required",
         description: "Please sign up or login to join tournaments",
@@ -88,10 +100,49 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
     }
   };
 
-  const handlePaymentSuccess = (transactionId: string) => {
+  const handleWalletPayment = () => {
+    if (walletBalance < entryFeeAmount) {
+      toast({
+        title: "Insufficient Balance",
+        description: "Please deposit money to your wallet first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Deduct from wallet
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    const userWallet = walletData[user?.id || ''] || { balance: 0, transactions: [] };
+    
+    const newBalance = userWallet.balance - entryFeeAmount;
+    const newTransaction = {
+      id: Date.now().toString(),
+      type: 'tournament_payment',
+      amount: entryFeeAmount,
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+      description: `Tournament entry fee for ${tournament.title}`,
+    };
+
+    userWallet.balance = newBalance;
+    userWallet.transactions.push(newTransaction);
+    walletData[user?.id || ''] = userWallet;
+    localStorage.setItem('walletData', JSON.stringify(walletData));
+
+    setPaymentData({
+      transactionId: `WALLET_${Date.now()}`,
+      amount: entryFeeAmount,
+      screenshot: ''
+    });
+
+    handleJoinComplete();
+  };
+
+  const handlePaymentSuccess = (transactionId: string, screenshot?: string) => {
     setPaymentData({
       transactionId,
-      amount: entryFeeAmount
+      amount: entryFeeAmount,
+      screenshot: screenshot || ''
     });
     handleJoinComplete();
   };
@@ -146,8 +197,9 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
 
   const handleClose = () => {
     setStep(1);
+    setPaymentMethod(null);
     setGameDetails({ gameName: '', uid: '', whatsappNumber: '', squadMembers: ['', '', ''] });
-    setPaymentData({ transactionId: '', amount: 0 });
+    setPaymentData({ transactionId: '', amount: 0, screenshot: '' });
     onClose();
   };
 
@@ -314,11 +366,81 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   );
 
   const renderStep3 = () => (
-    <UPIPayment
-      amount={entryFeeAmount}
-      onSuccess={handlePaymentSuccess}
-      onBack={() => setStep(2)}
-    />
+    <div className="space-y-4">
+      <div className="text-center">
+        <h3 className="text-xl font-bold text-white mb-2">Choose Payment Method</h3>
+        <p className="text-gray-300 text-sm">Select how you want to pay ₹{entryFeeAmount}</p>
+      </div>
+
+      {/* Wallet Payment Option */}
+      <Card className="bg-black/20 border border-cyan-500/20">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center space-x-2">
+              <wallet className="w-5 h-5 text-cyan-400" />
+              <span className="text-white font-medium">Wallet Balance</span>
+            </div>
+            <span className="text-cyan-400 font-bold">₹{walletBalance}</span>
+          </div>
+          
+          {walletBalance >= entryFeeAmount ? (
+            <Button 
+              onClick={handleWalletPayment}
+              className="w-full bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700"
+            >
+              Pay from Wallet (₹{entryFeeAmount})
+            </Button>
+          ) : (
+            <div>
+              <p className="text-red-400 text-sm mb-2">Insufficient balance</p>
+              <Button 
+                variant="outline"
+                className="w-full border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-white"
+                onClick={() => setPaymentMethod('upi')}
+              >
+                Deposit & Pay via UPI
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* UPI Payment Option */}
+      <Card className="bg-black/20 border border-purple-500/20">
+        <CardContent className="p-4">
+          <div className="text-center mb-3">
+            <span className="text-white font-medium">Direct UPI Payment</span>
+          </div>
+          <Button 
+            onClick={() => setPaymentMethod('upi')}
+            variant="outline"
+            className="w-full border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white"
+          >
+            Pay via UPI (₹{entryFeeAmount})
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-3">
+        <Button 
+          variant="outline" 
+          onClick={() => setStep(2)}
+          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+        >
+          Back
+        </Button>
+      </div>
+
+      {paymentMethod === 'upi' && (
+        <div className="mt-4">
+          <UPIPayment
+            amount={entryFeeAmount}
+            onSuccess={handlePaymentSuccess}
+            onBack={() => setPaymentMethod(null)}
+          />
+        </div>
+      )}
+    </div>
   );
 
   const renderStep4 = () => {
