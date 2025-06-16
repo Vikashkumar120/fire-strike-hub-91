@@ -6,14 +6,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TournamentJoinFlow from '@/components/TournamentJoinFlow';
+import LoginModal from '@/components/LoginModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Tournaments = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [isJoinFlowOpen, setIsJoinFlowOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [tournaments, setTournaments] = useState([]);
+  const { isAuthenticated } = useAuth();
 
   // Default tournaments + Admin created tournaments
   const defaultTournaments = [
@@ -117,8 +120,20 @@ const Tournaments = () => {
   });
 
   const handleJoinTournament = (tournament) => {
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
+      setSelectedTournament(tournament);
+      return;
+    }
     setSelectedTournament(tournament);
     setIsJoinFlowOpen(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsLoginModalOpen(false);
+    if (selectedTournament) {
+      setIsJoinFlowOpen(true);
+    }
   };
 
   const handleCloseJoinFlow = () => {
@@ -127,6 +142,80 @@ const Tournaments = () => {
     
     // Refresh tournaments to show updated player counts
     const storedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
+    const defaultTournaments = [
+      {
+        id: 1,
+        title: "Squad Showdown Championship",
+        type: "Squad",
+        prize: "₹25,000",
+        players: "48/64",
+        startTime: "2024-01-20 18:00",
+        entryFee: "₹100",
+        status: "open",
+        map: "Bermuda",
+        duration: "45 min"
+      },
+      {
+        id: 2,
+        title: "Solo Warriors Battle",
+        type: "Solo",
+        prize: "₹15,000",
+        players: "89/100",
+        startTime: "2024-01-20 20:00",
+        entryFee: "₹50",
+        status: "filling",
+        map: "Purgatory",
+        duration: "30 min"
+      },
+      {
+        id: 3,
+        title: "Duo Masters Arena",
+        type: "Duo",
+        prize: "₹18,000",
+        players: "24/32",
+        startTime: "2024-01-21 16:00",
+        entryFee: "₹150",
+        status: "open",
+        map: "Kalahari",
+        duration: "40 min"
+      },
+      {
+        id: 4,
+        title: "Elite Championship",
+        type: "Squad",
+        prize: "₹50,000",
+        players: "12/16",
+        startTime: "2024-01-22 19:00",
+        entryFee: "₹500",
+        status: "premium",
+        map: "Bermuda",
+        duration: "60 min"
+      },
+      {
+        id: 5,
+        title: "Rookie Tournament",
+        type: "Solo",
+        prize: "₹5,000",
+        players: "45/50",
+        startTime: "2024-01-20 14:00",
+        entryFee: "₹25",
+        status: "open",
+        map: "Purgatory",
+        duration: "25 min"
+      },
+      {
+        id: 6,
+        title: "Weekend Warriors",
+        type: "Squad",
+        prize: "₹35,000",
+        players: "32/48",
+        startTime: "2024-01-21 20:00",
+        entryFee: "₹200",
+        status: "open",
+        map: "Kalahari",
+        duration: "50 min"
+      }
+    ];
     const allTournaments = [...defaultTournaments, ...storedTournaments];
     setTournaments(allTournaments);
   };
@@ -146,11 +235,26 @@ const Tournaments = () => {
               <span className="text-xl font-bold text-white">FireTourneys</span>
             </Link>
             <div className="flex items-center space-x-3">
-              <Link to="/dashboard">
-                <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
-                  Dashboard
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <Link to="/dashboard">
+                  <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
+                    Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Link to="/login">
+                    <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
+                      Sign Up
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -260,8 +364,15 @@ const Tournaments = () => {
         )}
       </div>
 
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={handleLoginSuccess}
+      />
+
       {/* Join Tournament Flow */}
-      {selectedTournament && (
+      {selectedTournament && isAuthenticated && (
         <TournamentJoinFlow
           tournament={selectedTournament}
           isOpen={isJoinFlowOpen}

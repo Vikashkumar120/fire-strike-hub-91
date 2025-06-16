@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { 
   Trophy, 
   Wallet as WalletIcon, 
@@ -12,13 +13,16 @@ import {
   Plus,
   ArrowUpRight,
   ArrowDownRight,
-  Minus
+  Minus,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import Wallet from '@/components/Wallet';
@@ -28,14 +32,20 @@ const Dashboard = () => {
   const [balance, setBalance] = useState(0);
   const [showWallet, setShowWallet] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [profileImage, setProfileImage] = useState('');
   const [profileData, setProfileData] = useState({
     name: "ProGamer_21",
     uid: "FF123456789",
     email: "player@example.com",
     phone: "+91 9876543210"
   });
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  // Redirect to tournaments if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/tournaments" replace />;
+  }
 
   const userStats = {
     name: profileData.name,
@@ -60,7 +70,30 @@ const Dashboard = () => {
     if (savedProfile[user?.id || '']) {
       setProfileData(savedProfile[user?.id || '']);
     }
+
+    // Load profile image
+    const savedImage = localStorage.getItem(`profileImage_${user?.id || ''}`);
+    if (savedImage) {
+      setProfileImage(savedImage);
+    }
   }, [user]);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        setProfileImage(imageUrl);
+        localStorage.setItem(`profileImage_${user?.id || ''}`, imageUrl);
+        toast({
+          title: "Profile Image Updated!",
+          description: "Your profile image has been saved successfully.",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleProfileSave = () => {
     const savedProfiles = JSON.parse(localStorage.getItem('userProfile') || '{}');
@@ -177,6 +210,12 @@ const Dashboard = () => {
               <Button variant="outline" size="sm" className="border-gray-600">
                 <Bell className="w-4 h-4" />
               </Button>
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={profileImage} />
+                <AvatarFallback className="bg-cyan-500 text-white">
+                  {user?.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
             </div>
           </div>
         </div>
@@ -185,11 +224,19 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">
-              Welcome back, <span className="text-cyan-400">{userStats.name}</span>
-            </h1>
-            <p className="text-gray-300">Ready to dominate the battlefield?</p>
+          <div className="flex items-center space-x-4">
+            <Avatar className="w-16 h-16">
+              <AvatarImage src={profileImage} />
+              <AvatarFallback className="bg-cyan-500 text-white text-xl">
+                {user?.name?.charAt(0) || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">
+                Welcome back, <span className="text-cyan-400">{userStats.name}</span>
+              </h1>
+              <p className="text-gray-300">Ready to dominate the battlefield?</p>
+            </div>
           </div>
           <div className="flex items-center space-x-2 mt-4 md:mt-0">
             <Badge variant="secondary" className="bg-purple-500/20 text-purple-300">
@@ -394,7 +441,39 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 {!showProfileEdit ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
+                    {/* Profile Image Section */}
+                    <div className="flex flex-col items-center space-y-4">
+                      <Avatar className="w-24 h-24">
+                        <AvatarImage src={profileImage} />
+                        <AvatarFallback className="bg-cyan-500 text-white text-2xl">
+                          {user?.name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          id="profile-image-upload"
+                        />
+                        <label htmlFor="profile-image-upload">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-600 text-gray-300 cursor-pointer"
+                            asChild
+                          >
+                            <span>
+                              <Camera className="w-4 h-4 mr-2" />
+                              Change Photo
+                            </span>
+                          </Button>
+                        </label>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-gray-300 text-sm">Username</label>

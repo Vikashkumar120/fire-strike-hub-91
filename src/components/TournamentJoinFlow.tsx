@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
@@ -11,7 +12,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle,
-  IndianRupee
+  IndianRupee,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -457,18 +459,29 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
 
   if (showUPIPayment) {
     return (
-      <UPIPayment
-        amount={tournament.entryFee}
-        onSuccess={handleUPISuccess}
-        onBack={() => setShowUPIPayment(false)}
-      />
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+        <UPIPayment
+          amount={tournament.entryFee}
+          onSuccess={handleUPISuccess}
+          onBack={() => setShowUPIPayment(false)}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4">
-      <div className="max-w-md mx-auto">
-        <Card className="bg-black/30 backdrop-blur-md border border-gray-700">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <Card className="bg-black/30 backdrop-blur-md border border-gray-700 relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="absolute top-4 right-4 text-gray-400 hover:text-white z-10"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+          
           <CardContent className="p-6">
             {/* Progress indicator */}
             <div className="flex justify-center space-x-2 mb-6">
