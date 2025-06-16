@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
@@ -92,10 +91,17 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   };
 
   const handleWalletPayment = () => {
-    if (walletBalance < tournament.entryFee) {
+    console.log('Wallet balance:', walletBalance, 'Entry fee:', tournament.entryFee);
+    
+    // Extract numeric value from entryFee string (e.g., "₹100" -> 100)
+    const entryFeeAmount = typeof tournament.entryFee === 'string' 
+      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
+      : tournament.entryFee;
+
+    if (walletBalance < entryFeeAmount) {
       toast({
         title: "Insufficient Balance",
-        description: "Please add money to your wallet first",
+        description: `You need ₹${entryFeeAmount} but only have ₹${walletBalance}. Please add money to your wallet first.`,
         variant: "destructive"
       });
       setPaymentMethod('upi');
@@ -106,11 +112,11 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
     const userWallet = walletData[user?.id || ''] || { balance: 0, transactions: [] };
     
-    userWallet.balance -= tournament.entryFee;
+    userWallet.balance -= entryFeeAmount;
     const newTransaction = {
       id: Date.now().toString(),
       type: 'tournament_payment',
-      amount: tournament.entryFee,
+      amount: entryFeeAmount,
       status: 'completed',
       timestamp: new Date().toISOString(),
       description: `Tournament entry fee - ${tournament.title}`,
@@ -132,7 +138,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
         inGameName: userDetails.inGameName,
         teamName: userDetails.teamName,
         teammates: userDetails.teammates.filter(t => t.trim() !== ''),
-        entryFee: tournament.entryFee,
+        entryFee: entryFeeAmount,
         paymentMethod: 'wallet'
       },
       timestamp: new Date().toISOString()
@@ -150,6 +156,10 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   };
 
   const handleUPISuccess = (transactionId: string, screenshot?: string) => {
+    const entryFeeAmount = typeof tournament.entryFee === 'string' 
+      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
+      : tournament.entryFee;
+
     // Save tournament join activity for admin
     const userActivity = JSON.parse(localStorage.getItem('userActivity') || '[]');
     const joinActivity = {
@@ -162,7 +172,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
         inGameName: userDetails.inGameName,
         teamName: userDetails.teamName,
         teammates: userDetails.teammates.filter(t => t.trim() !== ''),
-        entryFee: tournament.entryFee,
+        entryFee: entryFeeAmount,
         paymentMethod: 'upi',
         transactionId,
         screenshot
@@ -286,141 +296,153 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     </div>
   );
 
-  const renderStep2 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Choose Payment Method</h2>
-        <p className="text-gray-300">Entry Fee: ₹{tournament.entryFee}</p>
-      </div>
+  const renderStep2 = () => {
+    const entryFeeAmount = typeof tournament.entryFee === 'string' 
+      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
+      : tournament.entryFee;
 
-      <div className="space-y-4">
-        <div className="grid gap-4">
-          <Card 
-            className={`cursor-pointer transition-all ${
-              paymentMethod === 'wallet' 
-                ? 'border-cyan-500 bg-cyan-500/10' 
-                : 'border-gray-600 bg-black/20'
-            }`}
-            onClick={() => setPaymentMethod('wallet')}
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Choose Payment Method</h2>
+          <p className="text-gray-300">Entry Fee: ₹{entryFeeAmount}</p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="grid gap-4">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                paymentMethod === 'wallet' 
+                  ? 'border-cyan-500 bg-cyan-500/10' 
+                  : 'border-gray-600 bg-black/20'
+              }`}
+              onClick={() => setPaymentMethod('wallet')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <WalletIcon className="w-6 h-6 text-cyan-400" />
+                    <div>
+                      <h3 className="text-white font-medium">Wallet Balance</h3>
+                      <p className="text-gray-300 text-sm">₹{walletBalance} available</p>
+                    </div>
+                  </div>
+                  {walletBalance >= entryFeeAmount ? (
+                    <Badge className="bg-green-500/20 text-green-400">Sufficient</Badge>
+                  ) : (
+                    <Badge className="bg-red-500/20 text-red-400">Insufficient</Badge>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className={`cursor-pointer transition-all ${
+                paymentMethod === 'upi' 
+                  ? 'border-cyan-500 bg-cyan-500/10' 
+                  : 'border-gray-600 bg-black/20'
+              }`}
+              onClick={() => setPaymentMethod('upi')}
+            >
+              <CardContent className="p-4">
                 <div className="flex items-center space-x-3">
-                  <WalletIcon className="w-6 h-6 text-cyan-400" />
+                  <IndianRupee className="w-6 h-6 text-green-400" />
                   <div>
-                    <h3 className="text-white font-medium">Wallet Balance</h3>
-                    <p className="text-gray-300 text-sm">₹{walletBalance} available</p>
+                    <h3 className="text-white font-medium">QR Code Payment</h3>
+                    <p className="text-gray-300 text-sm">Pay via QR Code</p>
                   </div>
                 </div>
-                {walletBalance >= tournament.entryFee ? (
-                  <Badge className="bg-green-500/20 text-green-400">Sufficient</Badge>
-                ) : (
-                  <Badge className="bg-red-500/20 text-red-400">Insufficient</Badge>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
 
-          <Card 
-            className={`cursor-pointer transition-all ${
-              paymentMethod === 'upi' 
-                ? 'border-cyan-500 bg-cyan-500/10' 
-                : 'border-gray-600 bg-black/20'
-            }`}
-            onClick={() => setPaymentMethod('upi')}
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setCurrentStep(1)} className="flex-1">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button 
+            onClick={() => setCurrentStep(3)}
+            className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600"
           >
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <IndianRupee className="w-6 h-6 text-green-400" />
-                <div>
-                  <h3 className="text-white font-medium">UPI Payment</h3>
-                  <p className="text-gray-300 text-sm">Pay via UPI</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            Continue
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
       </div>
+    );
+  };
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={() => setCurrentStep(1)} className="flex-1">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button 
-          onClick={() => setCurrentStep(3)}
-          className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600"
-        >
-          Continue
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
-      </div>
-    </div>
-  );
+  const renderStep3 = () => {
+    const entryFeeAmount = typeof tournament.entryFee === 'string' 
+      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
+      : tournament.entryFee;
 
-  const renderStep3 = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-white mb-2">Confirm Registration</h2>
-        <p className="text-gray-300">Please review your details before payment</p>
-      </div>
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-2">Confirm Registration</h2>
+          <p className="text-gray-300">Please review your details before payment</p>
+        </div>
 
-      <Card className="bg-black/20 border-gray-600">
-        <CardHeader>
-          <CardTitle className="text-white">Registration Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex justify-between">
-            <span className="text-gray-300">Tournament:</span>
-            <span className="text-white">{tournament.title}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-300">UID:</span>
-            <span className="text-white">{userDetails.uid}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-300">In-Game Name:</span>
-            <span className="text-white">{userDetails.inGameName}</span>
-          </div>
-          {tournament.type.toLowerCase() !== 'solo' && (
+        <Card className="bg-black/20 border-gray-600">
+          <CardHeader>
+            <CardTitle className="text-white">Registration Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-gray-300">Team Name:</span>
-              <span className="text-white">{userDetails.teamName}</span>
+              <span className="text-gray-300">Tournament:</span>
+              <span className="text-white">{tournament.title}</span>
             </div>
-          )}
-          <div className="flex justify-between">
-            <span className="text-gray-300">Entry Fee:</span>
-            <span className="text-green-400">₹{tournament.entryFee}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-300">Payment Method:</span>
-            <span className="text-cyan-400">
-              {paymentMethod === 'wallet' ? 'Wallet' : 'UPI'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex justify-between">
+              <span className="text-gray-300">UID:</span>
+              <span className="text-white">{userDetails.uid}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-300">In-Game Name:</span>
+              <span className="text-white">{userDetails.inGameName}</span>
+            </div>
+            {tournament.type.toLowerCase() !== 'solo' && (
+              <div className="flex justify-between">
+                <span className="text-gray-300">Team Name:</span>
+                <span className="text-white">{userDetails.teamName}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-gray-300">Entry Fee:</span>
+              <span className="text-green-400">₹{entryFeeAmount}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-300">Payment Method:</span>
+              <span className="text-cyan-400">
+                {paymentMethod === 'wallet' ? 'Wallet' : 'QR Code'}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={() => setCurrentStep(2)} className="flex-1">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button 
-          onClick={() => {
-            if (paymentMethod === 'wallet') {
-              handleWalletPayment();
-            } else {
-              setShowUPIPayment(true);
-            }
-          }}
-          className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600"
-        >
-          Pay ₹{tournament.entryFee}
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => setCurrentStep(2)} className="flex-1">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Button 
+            onClick={() => {
+              if (paymentMethod === 'wallet') {
+                handleWalletPayment();
+              } else {
+                setShowUPIPayment(true);
+              }
+            }}
+            className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600"
+          >
+            Pay ₹{entryFeeAmount}
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderStep4 = () => (
     <div className="space-y-6 text-center">
@@ -458,14 +480,16 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
   }
 
   if (showUPIPayment) {
+    const entryFeeAmount = typeof tournament.entryFee === 'string' 
+      ? parseInt(tournament.entryFee.replace(/[^\d]/g, '')) 
+      : tournament.entryFee;
+
     return (
-      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
-        <UPIPayment
-          amount={tournament.entryFee}
-          onSuccess={handleUPISuccess}
-          onBack={() => setShowUPIPayment(false)}
-        />
-      </div>
+      <UPIPayment
+        amount={entryFeeAmount}
+        onSuccess={handleUPISuccess}
+        onBack={() => setShowUPIPayment(false)}
+      />
     );
   }
 

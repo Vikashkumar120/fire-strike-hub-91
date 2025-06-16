@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -13,7 +14,9 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
@@ -22,8 +25,29 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Login attempt:', formData);
-    // Add authentication logic here
+    
+    if (!formData.email || !formData.password) {
+      toast({
+        title: "Fields Required",
+        description: "Please fill all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Mock login - in real app, verify with backend
+    login({
+      name: formData.email.split('@')[0],
+      email: formData.email,
+      phone: '1234567890'
+    });
+
+    toast({
+      title: "Login Successful!",
+      description: "Welcome back to FireTourneys",
+    });
+
+    navigate('/dashboard');
   };
 
   return (

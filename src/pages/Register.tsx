@@ -1,11 +1,11 @@
-
 import React, { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, Gamepad2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,7 +18,9 @@ const Register = () => {
     freefireUID: '',
     referralCode: ''
   });
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Redirect to dashboard if already authenticated
   if (isAuthenticated) {
@@ -27,8 +29,38 @@ const Register = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Registration attempt:', formData);
-    // Add registration logic here
+    
+    if (!formData.username || !formData.email || !formData.password || !formData.freefireUID) {
+      toast({
+        title: "Required Fields Missing",
+        description: "Please fill all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Register user
+    login({
+      name: formData.username,
+      email: formData.email,
+      phone: '1234567890'
+    });
+
+    toast({
+      title: "Registration Successful!",
+      description: "Welcome to FireTourneys",
+    });
+
+    navigate('/dashboard');
   };
 
   return (
