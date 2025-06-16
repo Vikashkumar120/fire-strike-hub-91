@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, Trophy, Users, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -76,43 +77,43 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   };
 
   const renderStep1 = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-white mb-2">{tournament.title}</h3>
-        <p className="text-cyan-400">{tournament.type} Tournament</p>
+        <h3 className="text-xl font-bold text-white mb-2">{tournament.title}</h3>
+        <p className="text-cyan-400 text-sm">{tournament.type} Tournament</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-black/20 p-4 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
-            <span className="text-gray-300 text-sm">Date & Time</span>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-black/20 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Clock className="w-4 h-4 text-cyan-400" />
+            <span className="text-gray-300 text-xs">Date & Time</span>
           </div>
-          <p className="text-white font-medium">{new Date(tournament.startTime).toLocaleString()}</p>
+          <p className="text-white text-sm font-medium">{new Date(tournament.startTime).toLocaleString()}</p>
         </div>
 
-        <div className="bg-black/20 p-4 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <Trophy className="w-5 h-5 text-yellow-400" />
-            <span className="text-gray-300 text-sm">Prize Pool</span>
+        <div className="bg-black/20 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Trophy className="w-4 h-4 text-yellow-400" />
+            <span className="text-gray-300 text-xs">Prize Pool</span>
           </div>
-          <p className="text-white font-medium">{tournament.prize}</p>
+          <p className="text-white text-sm font-medium">{tournament.prize}</p>
         </div>
 
-        <div className="bg-black/20 p-4 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <MapPin className="w-5 h-5 text-green-400" />
-            <span className="text-gray-300 text-sm">Map</span>
+        <div className="bg-black/20 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <MapPin className="w-4 h-4 text-green-400" />
+            <span className="text-gray-300 text-xs">Map</span>
           </div>
-          <p className="text-white font-medium">{tournament.map}</p>
+          <p className="text-white text-sm font-medium">{tournament.map}</p>
         </div>
 
-        <div className="bg-black/20 p-4 rounded-lg">
-          <div className="flex items-center space-x-2 mb-2">
-            <Users className="w-5 h-5 text-purple-400" />
-            <span className="text-gray-300 text-sm">Slots</span>
+        <div className="bg-black/20 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 mb-1">
+            <Users className="w-4 h-4 text-purple-400" />
+            <span className="text-gray-300 text-xs">Slots</span>
           </div>
-          <p className="text-white font-medium">{tournament.players}</p>
+          <p className="text-white text-sm font-medium">{tournament.players}</p>
         </div>
       </div>
 
@@ -120,7 +121,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
         <div className="flex justify-between items-center">
           <div>
             <p className="text-white font-medium">Entry Fee</p>
-            <p className="text-2xl font-bold text-cyan-400">{tournament.entryFee}</p>
+            <p className="text-xl font-bold text-cyan-400">{tournament.entryFee}</p>
           </div>
           <div className="text-right">
             <p className="text-gray-300 text-sm">Mode</p>
@@ -288,11 +289,11 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={handleClose}>
-        <DrawerContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-h-[90vh]">
-          <DrawerHeader>
-            <DrawerTitle className="text-white text-center">Tournament Details</DrawerTitle>
+        <DrawerContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-h-[95vh]">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="text-white text-center text-lg">Tournament Details</DrawerTitle>
           </DrawerHeader>
-          <div className="p-4 overflow-y-auto">
+          <div className="p-4 overflow-y-auto flex-1">
             {content}
           </div>
         </DrawerContent>
@@ -302,11 +303,13 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-white text-center">Tournament Details</DialogTitle>
+      <DialogContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-white text-center text-lg">Tournament Details</DialogTitle>
         </DialogHeader>
-        {content}
+        <div className="overflow-y-auto max-h-[75vh]">
+          {content}
+        </div>
       </DialogContent>
     </Dialog>
   );

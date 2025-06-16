@@ -56,19 +56,19 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-white mb-2">Complete Payment</h3>
-        <p className="text-gray-300">Scan QR code or use UPI ID to pay ₹{amount}</p>
+        <h3 className="text-xl font-bold text-white mb-2">Complete Payment</h3>
+        <p className="text-gray-300 text-sm">Scan QR code or use UPI ID to pay ₹{amount}</p>
       </div>
 
       {/* QR Code Section */}
       <Card className="bg-black/20 border border-cyan-500/20">
-        <CardContent className="p-6 text-center">
-          <div className="bg-white p-4 rounded-lg inline-block mb-4">
-            <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+        <CardContent className="p-4 text-center">
+          <div className="bg-white p-3 rounded-lg inline-block mb-3">
+            <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center">
               <div className="text-center">
-                <QrCode className="w-24 h-24 mx-auto mb-2 text-gray-600" />
+                <QrCode className="w-16 h-16 mx-auto mb-1 text-gray-600" />
                 <p className="text-xs text-gray-600">QR Code for ₹{amount}</p>
               </div>
             </div>
@@ -76,32 +76,32 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
           
           <div className="space-y-3">
             <div className="bg-black/20 p-3 rounded-lg">
-              <p className="text-gray-300 text-sm mb-1">Pay to UPI ID:</p>
+              <p className="text-gray-300 text-xs mb-1">Pay to UPI ID:</p>
               <div className="flex items-center justify-between">
-                <span className="text-cyan-400 font-mono text-lg">{upiId}</span>
+                <span className="text-cyan-400 font-mono text-sm">{upiId}</span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleCopyUPI}
-                  className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
+                  className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black h-8 px-2"
                 >
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </Button>
               </div>
             </div>
             
             <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 p-3 rounded-lg">
-              <p className="text-white font-medium">Amount: ₹{amount}</p>
-              <p className="text-gray-300 text-sm">Tournament Entry Fee</p>
+              <p className="text-white font-medium text-sm">Amount: ₹{amount}</p>
+              <p className="text-gray-300 text-xs">Tournament Entry Fee</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Payment Instructions */}
-      <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-lg">
-        <h4 className="text-white font-medium mb-2">📱 How to Pay:</h4>
-        <ol className="text-gray-300 text-sm space-y-1">
+      <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
+        <h4 className="text-white font-medium mb-2 text-sm">📱 How to Pay:</h4>
+        <ol className="text-gray-300 text-xs space-y-1">
           <li>1. Open any UPI app (PhonePe, Paytm, GPay)</li>
           <li>2. Scan the QR code above OR copy UPI ID</li>
           <li>3. Pay exactly ₹{amount}</li>
@@ -111,16 +111,16 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
       </div>
 
       {/* Transaction ID Input */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div>
           <label className="block text-gray-300 text-sm font-medium mb-2">
             Transaction ID / UTR Number *
           </label>
           <Input
-            placeholder="Enter your transaction ID (e.g., 123456789012)"
+            placeholder="Enter your transaction ID"
             value={transactionId}
             onChange={(e) => setTransactionId(e.target.value)}
-            className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
+            className="bg-black/20 border-gray-600 text-white placeholder-gray-400 text-sm"
           />
           <p className="text-gray-400 text-xs mt-1">
             You can find this in your UPI app after successful payment
@@ -133,7 +133,7 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
         <Button 
           variant="outline" 
           onClick={onBack}
-          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700"
+          className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-700 text-sm"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
@@ -141,15 +141,15 @@ const UPIPayment = ({ amount, onSuccess, onBack }: UPIPaymentProps) => {
         <Button 
           onClick={handlePaymentSubmit}
           disabled={!transactionId.trim() || isProcessing}
-          className="flex-1 bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700"
+          className="flex-1 bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-sm"
         >
           {isProcessing ? "Verifying..." : "Confirm Payment"}
         </Button>
       </div>
 
       {/* Warning */}
-      <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg">
-        <p className="text-red-400 text-sm">
+      <div className="bg-red-500/10 border border-red-500/20 p-2 rounded-lg">
+        <p className="text-red-400 text-xs">
           ⚠️ Only pay the exact amount (₹{amount}). Do not pay more or less. 
           Payment verification may take 1-2 minutes.
         </p>
