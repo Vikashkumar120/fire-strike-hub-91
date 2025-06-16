@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { X, Trophy, Users, Clock, MapPin, CheckCircle, UserPlus, wallet } from 'lucide-react';
+import { X, Trophy, Users, Clock, MapPin, CheckCircle, UserPlus, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -377,7 +376,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose, isMobile = false }: T
         <CardContent className="p-4">
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center space-x-2">
-              <wallet className="w-5 h-5 text-cyan-400" />
+              <Wallet className="w-5 h-5 text-cyan-400" />
               <span className="text-white font-medium">Wallet Balance</span>
             </div>
             <span className="text-cyan-400 font-bold">₹{walletBalance}</span>

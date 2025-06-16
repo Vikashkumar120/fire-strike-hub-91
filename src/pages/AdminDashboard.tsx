@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,7 +15,7 @@ import {
   Bell,
   Settings,
   LogOut,
-  wallet,
+  Wallet,
   ArrowUpCircle,
   ArrowDownCircle
 } from 'lucide-react';
@@ -561,7 +562,7 @@ const AdminDashboard = () => {
         
         {adminTransactions.filter((t: any) => t.type === 'deposit' || t.type === 'withdraw').length === 0 && (
           <div className="text-center py-12">
-            <wallet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+            <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-400 text-lg">No wallet transactions yet</p>
           </div>
         )}
