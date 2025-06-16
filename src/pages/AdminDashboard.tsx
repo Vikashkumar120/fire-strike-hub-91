@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ interface Transaction {
   status: string;
   timestamp: string;
   description: string;
+  screenshot?: string;
 }
 
 const AdminDashboard = () => {
