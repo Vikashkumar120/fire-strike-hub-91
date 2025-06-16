@@ -36,6 +36,7 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     teammates: ['', '', '']
   });
   const [showUPIPayment, setShowUPIPayment] = useState(false);
+  const [showWalletDeposit, setShowWalletDeposit] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -105,6 +106,50 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
 
     // Complete tournament join
     completeJoin('wallet', { transactionId: Date.now().toString() });
+  };
+
+  const handleUPIPaymentChoice = () => {
+    const entryFeeAmount = getEntryFeeAmount();
+    
+    toast({
+      title: "Redirecting to Wallet",
+      description: "Please add money to your wallet first, then join the tournament",
+    });
+    
+    // Redirect to wallet for deposit
+    setShowWalletDeposit(true);
+  };
+
+  const handleWalletDepositSuccess = (transactionId: string, screenshot?: string) => {
+    const entryFeeAmount = getEntryFeeAmount();
+    
+    // Save deposit transaction
+    const newTransaction = {
+      id: Date.now().toString(),
+      type: 'deposit',
+      amount: entryFeeAmount,
+      status: 'pending',
+      timestamp: new Date().toISOString(),
+      description: `Wallet deposit for ${tournament.title}`,
+      transactionId,
+      screenshot
+    };
+
+    // Update wallet data
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    const userWallet = walletData[user!.id] || { balance: 0, transactions: [] };
+    userWallet.transactions.push(newTransaction);
+    walletData[user!.id] = userWallet;
+    localStorage.setItem('walletData', JSON.stringify(walletData));
+
+    setShowWalletDeposit(false);
+    
+    toast({
+      title: "Deposit Initiated!",
+      description: "Your deposit is being processed. You can join the tournament after admin approval.",
+    });
+
+    onClose();
   };
 
   const completeJoin = (paymentMethod: string, paymentData: any) => {
@@ -292,19 +337,25 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
                 <div className="flex items-center space-x-3">
                   <CreditCard className="w-6 h-6 text-blue-400" />
                   <div>
-                    <p className="text-white font-medium">Pay with UPI</p>
-                    <p className="text-gray-400 text-sm">PhonePe, GPay, Paytm, etc.</p>
+                    <p className="text-white font-medium">Add Money to Wallet</p>
+                    <p className="text-gray-400 text-sm">Add ₹{entryFeeAmount} to your wallet</p>
                   </div>
                 </div>
                 <Button
-                  onClick={() => setCurrentStep(3)}
+                  onClick={handleUPIPaymentChoice}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  Pay with UPI
+                  Add to Wallet
                 </Button>
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+          <p className="text-yellow-400 text-sm">
+            💡 Add money to your wallet first, then join tournaments easily with one click!
+          </p>
         </div>
 
         <div className="flex gap-3">
@@ -379,6 +430,19 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
         description={`Entry fee for ${tournament.title}`}
         onSuccess={handleUPISuccess}
         onBack={() => setShowUPIPayment(false)}
+      />
+    );
+  }
+
+  if (showWalletDeposit) {
+    const entryFeeAmount = getEntryFeeAmount();
+
+    return (
+      <UPIPayment
+        amount={entryFeeAmount}
+        description={`Add ₹${entryFeeAmount} to wallet for ${tournament.title}`}
+        onSuccess={handleWalletDepositSuccess}
+        onBack={() => setShowWalletDeposit(false)}
       />
     );
   }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Wallet as WalletIcon, Plus, Minus, History, IndianRupee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,6 +85,18 @@ const Wallet = () => {
     });
   };
 
+  const handleDepositClick = () => {
+    if (!depositAmount || parseInt(depositAmount) <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid deposit amount",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowDeposit(true);
+  };
+
   const handleWithdraw = () => {
     const amount = parseInt(withdrawAmount);
     
@@ -161,10 +172,11 @@ const Wallet = () => {
     return true;
   };
 
-  if (showDeposit) {
+  if (showDeposit && depositAmount) {
     return (
       <UPIPayment
         amount={parseInt(depositAmount)}
+        description={`Wallet deposit of ₹${depositAmount}`}
         onSuccess={handleDepositSuccess}
         onBack={() => setShowDeposit(false)}
       />
@@ -185,7 +197,7 @@ const Wallet = () => {
           <div className="text-3xl font-bold text-cyan-400 mb-4">₹{balance}</div>
           <div className="flex gap-3">
             <Button 
-              onClick={() => setShowDeposit(true)}
+              onClick={() => setShowDeposit(false)}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -203,41 +215,50 @@ const Wallet = () => {
         </CardContent>
       </Card>
 
-      {/* Deposit Modal */}
+      {/* Deposit Input Section */}
       {!showDeposit && (
-        <div className={`space-y-4 ${showDeposit ? 'block' : 'hidden'}`}>
-          <Card className="bg-black/30 border-green-500/20">
-            <CardHeader>
-              <CardTitle className="text-white">Deposit Money</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  Deposit Amount (₹)
-                </label>
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
-                />
-              </div>
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setShowDeposit(false)} className="flex-1">
-                  Cancel
-                </Button>
-                <Button 
-                  onClick={() => setShowDeposit(true)}
-                  disabled={!depositAmount || parseInt(depositAmount) <= 0}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+        <Card className="bg-black/30 border-green-500/20">
+          <CardHeader>
+            <CardTitle className="text-white">Add Money to Wallet</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Enter Amount (₹) *
+              </label>
+              <Input
+                type="number"
+                placeholder="Enter amount to add"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
+              />
+            </div>
+            
+            {/* Quick Amount Buttons */}
+            <div className="flex gap-2 flex-wrap">
+              {[100, 250, 500, 1000, 2000, 5000].map((amount) => (
+                <Button
+                  key={amount}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDepositAmount(amount.toString())}
+                  className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-white"
                 >
-                  Proceed to Pay
+                  ₹{amount}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              ))}
+            </div>
+
+            <Button 
+              onClick={handleDepositClick}
+              disabled={!depositAmount || parseInt(depositAmount) <= 0}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Proceed to Payment
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Withdraw Modal */}
