@@ -9,7 +9,256 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          id: string
+          is_admin: boolean | null
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          id: string
+          is_admin?: boolean | null
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_admin?: boolean | null
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tournament_participants: {
+        Row: {
+          game_name: string
+          id: string
+          joined_at: string | null
+          payment_data: Json | null
+          payment_method: string | null
+          result: string | null
+          result_marked_at: string | null
+          result_screenshot: string | null
+          slot_number: number | null
+          teammates: Json | null
+          tournament_id: string | null
+          uid: string
+          user_id: string | null
+          whatsapp_number: string
+        }
+        Insert: {
+          game_name: string
+          id?: string
+          joined_at?: string | null
+          payment_data?: Json | null
+          payment_method?: string | null
+          result?: string | null
+          result_marked_at?: string | null
+          result_screenshot?: string | null
+          slot_number?: number | null
+          teammates?: Json | null
+          tournament_id?: string | null
+          uid: string
+          user_id?: string | null
+          whatsapp_number: string
+        }
+        Update: {
+          game_name?: string
+          id?: string
+          joined_at?: string | null
+          payment_data?: Json | null
+          payment_method?: string | null
+          result?: string | null
+          result_marked_at?: string | null
+          result_screenshot?: string | null
+          slot_number?: number | null
+          teammates?: Json | null
+          tournament_id?: string | null
+          uid?: string
+          user_id?: string | null
+          whatsapp_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string | null
+          current_players: number | null
+          duration: string | null
+          entry_fee: number
+          id: string
+          map: string | null
+          max_players: number
+          prize: string
+          start_time: string
+          status: string | null
+          thumbnail: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          current_players?: number | null
+          duration?: string | null
+          entry_fee: number
+          id?: string
+          map?: string | null
+          max_players: number
+          prize: string
+          start_time: string
+          status?: string | null
+          thumbnail?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          current_players?: number | null
+          duration?: string | null
+          entry_fee?: number
+          id?: string
+          map?: string | null
+          max_players?: number
+          prize?: string
+          start_time?: string
+          status?: string | null
+          thumbnail?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string | null
+          description: string | null
+          id: string
+          screenshot: string | null
+          status: string | null
+          transaction_id: string | null
+          type: string
+          updated_at: string | null
+          upi_id: string | null
+          user_id: string | null
+          wallet_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          screenshot?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type: string
+          updated_at?: string | null
+          upi_id?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          screenshot?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type?: string
+          updated_at?: string | null
+          upi_id?: string | null
+          user_id?: string | null
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallets: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

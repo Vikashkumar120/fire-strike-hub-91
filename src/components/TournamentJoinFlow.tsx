@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Tournament {
   id: number;
@@ -35,16 +36,36 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     teammates: ['', '', '']
   });
   const [walletBalance, setWalletBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-      const userWallet = walletData[user.id] || { balance: 0, transactions: [] };
-      setWalletBalance(userWallet.balance);
+    if (user && isOpen) {
+      fetchWalletBalance();
     }
-  }, [user]);
+  }, [user, isOpen]);
+
+  const fetchWalletBalance = async () => {
+    if (!user) return;
+
+    try {
+      const { data: walletData, error } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching wallet:', error);
+        return;
+      }
+
+      setWalletBalance(Number(walletData?.balance || 0));
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   const getEntryFeeAmount = (): number => {
     if (typeof tournament.entryFee === 'string') {
@@ -71,9 +92,10 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
     return true;
   };
 
-  const handleWalletPayment = () => {
+  const handleWalletPayment = async () => {
+    if (!user) return;
+    
     const entryFeeAmount = getEntryFeeAmount();
-    console.log('Wallet balance:', walletBalance, 'Entry fee:', entryFeeAmount);
     
     if (walletBalance < entryFeeAmount) {
       toast({
@@ -81,85 +103,109 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
         description: `You need ₹${entryFeeAmount - walletBalance} more. Please add money to your wallet first.`,
         variant: "destructive"
       });
-      // Redirect to wallet page
-      window.location.href = '/dashboard';
       return;
     }
 
-    // Deduct from wallet
-    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-    const userWallet = walletData[user!.id] || { balance: 0, transactions: [] };
+    setLoading(true);
     
-    userWallet.balance -= entryFeeAmount;
-    userWallet.transactions.push({
-      id: Date.now().toString(),
-      type: 'tournament_payment',
-      amount: entryFeeAmount,
-      description: `Tournament entry fee for ${tournament.title}`,
-      timestamp: new Date().toISOString(),
-      status: 'completed'
-    });
-    
-    walletData[user!.id] = userWallet;
-    localStorage.setItem('walletData', JSON.stringify(walletData));
+    try {
+      // Start transaction
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
 
-    // Complete tournament join
-    completeJoin('wallet', { transactionId: Date.now().toString() });
-  };
+      if (walletError) {
+        throw walletError;
+      }
 
-  const completeJoin = (paymentMethod: string, paymentData: any) => {
-    if (!user) return;
+      // Deduct from wallet
+      const newBalance = Number(walletData.balance) - entryFeeAmount;
+      
+      const { error: updateWalletError } = await supabase
+        .from('wallets')
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
 
-    const matchData = {
-      id: `${user.id}_${tournament.id}_${Date.now()}`,
-      userId: user.id,
-      tournament: tournament,
-      gameDetails: userDetails,
-      joinedAt: new Date().toISOString(),
-      slotNumber: Math.floor(Math.random() * 100) + 1,
-      paymentMethod: paymentMethod,
-      paymentData: paymentData,
-      result: null,
-      resultScreenshot: null,
-      status: 'joined'
-    };
+      if (updateWalletError) {
+        throw updateWalletError;
+      }
 
-    // Save to user's match history
-    const userMatchHistory = JSON.parse(localStorage.getItem(`matchHistory_${user.id}`) || '[]');
-    userMatchHistory.push(matchData);
-    localStorage.setItem(`matchHistory_${user.id}`, JSON.stringify(userMatchHistory));
+      // Create transaction record
+      const { error: transactionError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: user.id,
+          wallet_id: walletData.id,
+          type: 'tournament_payment',
+          amount: entryFeeAmount,
+          status: 'completed',
+          description: `Tournament entry fee for ${tournament.title}`,
+          transaction_id: `TXN_${Date.now()}`
+        });
 
-    // Also save to global match history for backward compatibility
-    const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
-    matchHistory.push(matchData);
-    localStorage.setItem('matchHistory', JSON.stringify(matchHistory));
+      if (transactionError) {
+        throw transactionError;
+      }
 
-    // Save user activity for admin
-    const userActivity = JSON.parse(localStorage.getItem('userActivity') || '[]');
-    userActivity.push({
-      id: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      action: 'joined_tournament',
-      tournamentName: tournament.title,
-      tournamentDetails: {
-        uid: userDetails.uid,
-        teamName: userDetails.gameName,
-        entryFee: getEntryFeeAmount(),
-        slotNumber: matchData.slotNumber
-      },
-      timestamp: new Date().toISOString()
-    });
-    localStorage.setItem('userActivity', JSON.stringify(userActivity));
+      // Join tournament
+      const { error: joinError } = await supabase
+        .from('tournament_participants')
+        .insert({
+          tournament_id: tournament.id.toString(),
+          user_id: user.id,
+          game_name: userDetails.gameName,
+          uid: userDetails.uid,
+          whatsapp_number: userDetails.whatsappNumber,
+          teammates: userDetails.teammates.filter(t => t.trim()),
+          slot_number: Math.floor(Math.random() * 100) + 1,
+          payment_method: 'wallet',
+          payment_data: { transactionId: `TXN_${Date.now()}` }
+        });
 
-    console.log('Match joined successfully:', matchData);
+      if (joinError) {
+        throw joinError;
+      }
 
-    toast({
-      title: "Tournament Joined Successfully!",
-      description: `You have joined ${tournament.title}. Good luck!`,
-    });
+      // Update tournament participant count
+      const { error: updateTournamentError } = await supabase
+        .from('tournaments')
+        .update({ 
+          current_players: tournament.slots.filled + 1 
+        })
+        .eq('id', tournament.id.toString());
 
-    onClose();
+      if (updateTournamentError) {
+        console.error('Error updating tournament count:', updateTournamentError);
+      }
+
+      // Create notification
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: user.id,
+          title: 'Tournament Joined Successfully!',
+          message: `You have successfully joined ${tournament.title}. Good luck!`,
+          type: 'success'
+        });
+
+      toast({
+        title: "Tournament Joined Successfully!",
+        description: `You have joined ${tournament.title}. Good luck!`,
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Error joining tournament:', error);
+      toast({
+        title: "Error",
+        description: "Failed to join tournament. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderStep1 = () => (
@@ -263,10 +309,10 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
               </div>
               <Button
                 onClick={handleWalletPayment}
-                disabled={walletBalance < entryFeeAmount}
+                disabled={walletBalance < entryFeeAmount || loading}
                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600"
               >
-                {walletBalance >= entryFeeAmount ? 'Pay Now' : 'Insufficient Balance'}
+                {loading ? 'Processing...' : walletBalance >= entryFeeAmount ? 'Pay Now' : 'Insufficient Balance'}
               </Button>
             </div>
           </CardContent>
@@ -312,8 +358,8 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gradient-to-br from-slate-900 to-purple-900 rounded-xl border border-purple-500/20 w-full max-w-md">
-        <div className="flex items-center justify-between p-4 border-b border-purple-500/20">
+      <div className="bg-gradient-to-br from-slate-900 to-purple-900 rounded-xl border border-purple-500/20 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b border-purple-500/20 sticky top-0 bg-gradient-to-br from-slate-900 to-purple-900">
           <h2 className="text-lg font-bold text-white">Join {tournament.title}</h2>
           <Button
             variant="ghost"
