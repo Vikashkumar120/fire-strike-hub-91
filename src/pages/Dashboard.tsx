@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { 
@@ -39,7 +38,7 @@ const Dashboard = () => {
     email: "player@example.com",
     phone: "+91 9876543210"
   });
-  const { user, isAuthenticated } = useAuth();
+  const { user, profile, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   // Redirect to tournaments if not authenticated
@@ -48,7 +47,7 @@ const Dashboard = () => {
   }
 
   const userStats = {
-    name: profileData.name,
+    name: profile?.name || profileData.name,
     uid: profileData.uid,
     level: 45,
     walletBalance: balance,
@@ -213,7 +212,7 @@ const Dashboard = () => {
               <Avatar className="w-8 h-8">
                 <AvatarImage src={profileImage} />
                 <AvatarFallback className="bg-cyan-500 text-white">
-                  {user?.name?.charAt(0) || 'U'}
+                  {profile?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
             </div>
@@ -228,7 +227,7 @@ const Dashboard = () => {
             <Avatar className="w-16 h-16">
               <AvatarImage src={profileImage} />
               <AvatarFallback className="bg-cyan-500 text-white text-xl">
-                {user?.name?.charAt(0) || 'U'}
+                {profile?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -447,7 +446,7 @@ const Dashboard = () => {
                       <Avatar className="w-24 h-24">
                         <AvatarImage src={profileImage} />
                         <AvatarFallback className="bg-cyan-500 text-white text-2xl">
-                          {user?.name?.charAt(0) || 'U'}
+                          {profile?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex items-center space-x-2">
