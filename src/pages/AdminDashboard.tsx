@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,12 +19,13 @@ interface Transaction {
   timestamp: string;
   description: string;
   screenshot?: string;
+  upiId?: string;
 }
 
 const AdminDashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userActivity, setUserActivity] = useState([]);
-  const [activeTab, setActiveTab] = useState('deposits');
+  const [activeTab, setActiveTab] = useState('transactions');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,13 +33,19 @@ const AdminDashboard = () => {
   }, []);
 
   const loadAdminData = () => {
-    // Load admin transaction history from localStorage
-    const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-    setTransactions(adminTransactions);
+    try {
+      // Load admin transaction history from localStorage
+      const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+      setTransactions(adminTransactions);
 
-    // Load user activity
-    const activity = JSON.parse(localStorage.getItem('userActivity') || '[]');
-    setUserActivity(activity);
+      // Load user activity
+      const activity = JSON.parse(localStorage.getItem('userActivity') || '[]');
+      setUserActivity(activity);
+      
+      console.log('Admin transactions loaded:', adminTransactions);
+    } catch (error) {
+      console.error('Error loading admin data:', error);
+    }
   };
 
   const handleApproveDeposit = (transactionId: string, userId: string, amount: number) => {
@@ -71,20 +79,60 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleRejectDeposit = (transactionId: string) => {
+  const handleRejectTransaction = (transactionId: string, type: string) => {
     const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
     const updatedTransactions = adminTransactions.map((t: any) => 
       t.id === transactionId ? { ...t, status: 'failed', rejectedAt: new Date().toISOString() } : t
     );
     localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
 
+    // If it's a withdrawal rejection, refund the money to user's wallet
+    if (type === 'withdraw') {
+      const transaction = adminTransactions.find((t: any) => t.id === transactionId);
+      if (transaction) {
+        const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+        const userWallet = walletData[transaction.userId] || { balance: 0, transactions: [] };
+        userWallet.balance += transaction.amount;
+        walletData[transaction.userId] = userWallet;
+        localStorage.setItem('walletData', JSON.stringify(walletData));
+      }
+    }
+
     setTransactions(updatedTransactions);
     
     toast({
-      title: "Deposit Rejected",
-      description: "Deposit request has been rejected",
+      title: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} Rejected`,
+      description: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} request has been rejected${type === 'withdraw' ? ' and amount refunded' : ''}`,
     });
   };
+
+  const handleApproveWithdrawal = (transactionId: string, userId: string, amount: number) => {
+    // Update admin transactions
+    const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+    const updatedTransactions = adminTransactions.map((t: any) => 
+      t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
+    );
+    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+
+    // Update user's transaction in wallet
+    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
+    const userWallet = walletData[userId] || { balance: 0, transactions: [] };
+    userWallet.transactions = userWallet.transactions.map((t: any) => 
+      t.id === transactionId ? { ...t, status: 'completed' } : t
+    );
+    walletData[userId] = userWallet;
+    localStorage.setItem('walletData', JSON.stringify(walletData));
+
+    setTransactions(updatedTransactions);
+    
+    toast({
+      title: "Withdrawal Approved!",
+      description: `₹${amount} withdrawal has been approved`,
+    });
+  };
+
+  const pendingDeposits = transactions.filter(t => t.type === 'deposit' && t.status === 'pending');
+  const pendingWithdrawals = transactions.filter(t => t.type === 'withdraw' && t.status === 'pending');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -100,11 +148,11 @@ const AdminDashboard = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 bg-black/30 border border-purple-500/20">
             <TabsTrigger 
-              value="deposits" 
+              value="transactions" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              Deposits
+              Transactions
             </TabsTrigger>
             <TabsTrigger 
               value="tournaments" 
@@ -136,22 +184,23 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="deposits" className="space-y-6 mt-6">
-            <Card className="bg-black/30 border-purple-500/20 backdrop-blur-md">
+          <TabsContent value="transactions" className="space-y-6 mt-6">
+            {/* Pending Deposits */}
+            <Card className="bg-black/30 border-green-500/20 backdrop-blur-md">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
-                  <CreditCard className="w-5 h-5 mr-2 text-cyan-400" />
-                  Pending Deposit Approvals
+                  <ArrowDownCircle className="w-5 h-5 mr-2 text-green-400" />
+                  Pending Deposit Approvals ({pendingDeposits.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {transactions.filter(t => t.type === 'deposit' && t.status === 'pending').map((transaction) => (
-                    <div key={transaction.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-gray-700/50">
+                  {pendingDeposits.map((transaction) => (
+                    <div key={transaction.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-green-500/20">
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="text-white font-semibold">{transaction.userName}</h3>
-                          <span className="text-cyan-400 font-bold text-lg">₹{transaction.amount}</span>
+                          <span className="text-green-400 font-bold text-lg">₹{transaction.amount}</span>
                         </div>
                         <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
                         <p className="text-gray-500 text-xs">{new Date(transaction.timestamp).toLocaleString()}</p>
@@ -176,7 +225,7 @@ const AdminDashboard = () => {
                           Approve
                         </Button>
                         <Button 
-                          onClick={() => handleRejectDeposit(transaction.id)}
+                          onClick={() => handleRejectTransaction(transaction.id, 'deposit')}
                           className="bg-red-600 hover:bg-red-700 text-white"
                           size="sm"
                         >
@@ -186,10 +235,63 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                   ))}
-                  {transactions.filter(t => t.type === 'deposit' && t.status === 'pending').length === 0 && (
+                  {pendingDeposits.length === 0 && (
                     <div className="text-center py-8">
-                      <CreditCard className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                      <ArrowDownCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                       <p className="text-gray-400">No pending deposit approvals</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pending Withdrawals */}
+            <Card className="bg-black/30 border-orange-500/20 backdrop-blur-md">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <ArrowUpCircle className="w-5 h-5 mr-2 text-orange-400" />
+                  Pending Withdrawal Approvals ({pendingWithdrawals.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {pendingWithdrawals.map((transaction) => (
+                    <div key={transaction.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-orange-500/20">
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-white font-semibold">{transaction.userName}</h3>
+                          <span className="text-orange-400 font-bold text-lg">₹{transaction.amount}</span>
+                        </div>
+                        <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
+                        {transaction.upiId && (
+                          <p className="text-cyan-400 text-sm">UPI ID: {transaction.upiId}</p>
+                        )}
+                        <p className="text-gray-500 text-xs">{new Date(transaction.timestamp).toLocaleString()}</p>
+                      </div>
+                      <div className="flex gap-3 ml-4">
+                        <Button 
+                          onClick={() => handleApproveWithdrawal(transaction.id, transaction.userId!, transaction.amount)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          size="sm"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Approve
+                        </Button>
+                        <Button 
+                          onClick={() => handleRejectTransaction(transaction.id, 'withdraw')}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          size="sm"
+                        >
+                          <XCircle className="w-4 h-4 mr-1" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {pendingWithdrawals.length === 0 && (
+                    <div className="text-center py-8">
+                      <ArrowUpCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                      <p className="text-gray-400">No pending withdrawal approvals</p>
                     </div>
                   )}
                 </div>
@@ -238,7 +340,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="stats" className="space-y-6 mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card className="bg-black/30 border-purple-500/20">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
@@ -274,7 +376,21 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-3xl font-bold text-green-400">
-                    {transactions.filter(t => t.status === 'completed').length}
+                    {transactions.filter(t => t.type === 'deposit' && t.status === 'completed').length}
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-black/30 border-purple-500/20">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center">
+                    <ArrowUpCircle className="w-5 h-5 mr-2" />
+                    Approved Withdrawals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold text-orange-400">
+                    {transactions.filter(t => t.type === 'withdraw' && t.status === 'completed').length}
                   </p>
                 </CardContent>
               </Card>
