@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Star, Play, Target, Zap, Crown, Medal, Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import TournamentSlider from '@/components/TournamentSlider';
+import ImageSlider from '@/components/ImageSlider';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
@@ -160,17 +162,32 @@ const Index = () => {
                   Join Tournament
                 </Button>
               </Link>
-              <Button size="lg" variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black px-8 py-4 text-lg">
-                <Target className="w-5 h-5 mr-2" />
-                Learn More
-              </Button>
+              <Link to="/about">
+                <Button size="lg" variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black px-8 py-4 text-lg">
+                  <Target className="w-5 h-5 mr-2" />
+                  Learn More
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tournament Slider */}
+      {/* Image Slider Section */}
       <div className="py-16 bg-black/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Featured Gallery</span>
+            </h2>
+            <p className="text-xl text-gray-300">Experience the thrill of competitive gaming</p>
+          </div>
+          <ImageSlider />
+        </div>
+      </div>
+
+      {/* Tournament Slider */}
+      <div className="py-16 bg-gradient-to-r from-cyan-500/5 to-purple-500/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-white mb-4">
@@ -192,7 +209,7 @@ const Index = () => {
       </div>
 
       {/* Live Stats Section */}
-      <div className="py-16 bg-gradient-to-r from-cyan-500/5 to-purple-500/5">
+      <div className="py-16 bg-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-white mb-4">Platform Statistics</h2>
@@ -253,9 +270,11 @@ const Index = () => {
                 <p className="text-gray-300 mb-6">
                   Join exclusive tournaments with bigger prize pools and compete against the best players in the community.
                 </p>
-                <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500 hover:text-black group-hover:scale-105 transition-all">
-                  Explore Now
-                </Button>
+                <Link to="/tournaments">
+                  <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500 hover:text-black group-hover:scale-105 transition-all">
+                    Explore Now
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -271,9 +290,11 @@ const Index = () => {
                 <p className="text-gray-300 mb-6">
                   Quick and secure prize distribution directly to your wallet. Get your winnings instantly after tournaments.
                 </p>
-                <Button variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500 hover:text-black group-hover:scale-105 transition-all">
-                  Learn More
-                </Button>
+                <Link to="/dashboard">
+                  <Button variant="outline" className="border-purple-500/50 text-purple-400 hover:bg-purple-500 hover:text-black group-hover:scale-105 transition-all">
+                    Learn More
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
@@ -289,9 +310,11 @@ const Index = () => {
                 <p className="text-gray-300 mb-6">
                   Advanced anti-cheat systems and fair matchmaking ensure every player gets an equal opportunity to win.
                 </p>
-                <Button variant="outline" className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black group-hover:scale-105 transition-all">
-                  Join Now
-                </Button>
+                <Link to="/tournaments">
+                  <Button variant="outline" className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black group-hover:scale-105 transition-all">
+                    Join Now
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           </div>

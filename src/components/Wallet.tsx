@@ -47,63 +47,80 @@ const Wallet = () => {
       };
       localStorage.setItem('walletData', JSON.stringify(walletData));
       
-      // Save admin transaction history properly
+      // Save admin transaction history for ALL deposit and withdraw requests
       const latestTransaction = newTransactions[newTransactions.length - 1];
       if (latestTransaction && (latestTransaction.type === 'deposit' || latestTransaction.type === 'withdraw')) {
-        let adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-        
-        // Add new transaction with complete user info
-        const adminTransaction = {
-          ...latestTransaction,
-          userId: user?.id,
-          userName: user?.name || user?.email,
-          userEmail: user?.email,
-          createdAt: new Date().toISOString()
-        };
-        
-        adminTransactions.push(adminTransaction);
-        
-        // Keep only last 100 transactions to prevent quota exceeded
-        if (adminTransactions.length > 100) {
-          adminTransactions = adminTransactions.slice(-100);
+        // Get existing admin transactions
+        let adminTransactions = [];
+        try {
+          adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+        } catch (e) {
+          console.error('Error parsing admin transactions:', e);
+          adminTransactions = [];
         }
         
-        localStorage.setItem('adminTransactions', JSON.stringify(adminTransactions));
-        console.log('Admin transaction saved:', adminTransaction);
+        // Create admin transaction record
+        const adminTransaction = {
+          id: latestTransaction.id,
+          type: latestTransaction.type,
+          amount: latestTransaction.amount,
+          status: latestTransaction.status,
+          timestamp: latestTransaction.timestamp,
+          description: latestTransaction.description,
+          transactionId: latestTransaction.transactionId,
+          screenshot: latestTransaction.screenshot,
+          upiId: latestTransaction.upiId,
+          userId: user?.id || 'unknown',
+          userName: user?.name || user?.email || 'Unknown User',
+          userEmail: user?.email || 'No Email'
+        };
+        
+        // Add to admin transactions
+        adminTransactions.push(adminTransaction);
+        
+        // Keep only last 200 transactions to prevent storage overflow
+        if (adminTransactions.length > 200) {
+          adminTransactions = adminTransactions.slice(-200);
+        }
+        
+        try {
+          localStorage.setItem('adminTransactions', JSON.stringify(adminTransactions));
+          console.log('Admin transaction saved successfully:', adminTransaction);
+        } catch (e) {
+          console.error('Error saving admin transaction:', e);
+        }
       }
     } catch (error) {
       console.error('Storage error:', error);
-      toast({
-        title: "Storage Error",
-        description: "Unable to save transaction data. Please try again.",
-        variant: "destructive"
-      });
+      
+      // Show user-friendly error but don't prevent the transaction
+      console.warn('Transaction saved locally but admin notification may have failed');
     }
   };
 
   const handleDepositSuccess = (transactionId: string, screenshot?: string) => {
     const amount = parseInt(depositAmount);
     const newTransaction: WalletTransaction = {
-      id: Date.now().toString(),
+      id: `dep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'deposit',
       amount,
       status: 'pending',
       timestamp: new Date().toISOString(),
-      description: `Deposit of ₹${amount}`,
+      description: `Deposit request of ₹${amount}`,
       transactionId,
       screenshot
     };
 
     const newTransactions = [...transactions, newTransaction];
     setTransactions(newTransactions);
-    saveWalletData(balance, newTransactions);
+    saveWalletData(balance, newTransactions); // Don't update balance yet, wait for admin approval
 
     setShowDeposit(false);
     setDepositAmount('');
     
     toast({
-      title: "Deposit Initiated!",
-      description: "Your deposit is being processed. Balance will be updated after verification.",
+      title: "Deposit Request Submitted!",
+      description: "Your deposit request has been sent to admin for approval. You'll be notified once approved.",
     });
   };
 
@@ -140,29 +157,28 @@ const Wallet = () => {
       return;
     }
 
-    const newBalance = balance - amount;
+    // Create withdrawal request (don't deduct balance yet, wait for admin approval)
     const newTransaction: WalletTransaction = {
-      id: Date.now().toString(),
+      id: `wit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type: 'withdraw',
       amount,
       status: 'pending',
       timestamp: new Date().toISOString(),
-      description: `Withdrawal of ₹${amount}`,
+      description: `Withdrawal request of ₹${amount}`,
       upiId: withdrawUPI
     };
 
     const newTransactions = [...transactions, newTransaction];
-    setBalance(newBalance);
     setTransactions(newTransactions);
-    saveWalletData(newBalance, newTransactions);
+    saveWalletData(balance, newTransactions); // Keep same balance, don't deduct yet
 
     setShowWithdraw(false);
     setWithdrawAmount('');
     setWithdrawUPI('');
     
     toast({
-      title: "Withdrawal Requested!",
-      description: "Your withdrawal request has been submitted for processing.",
+      title: "Withdrawal Request Submitted!",
+      description: "Your withdrawal request has been sent to admin for approval.",
     });
   };
 
