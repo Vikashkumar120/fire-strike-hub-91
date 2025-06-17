@@ -15,17 +15,16 @@ interface LoginModalProps {
 
 const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
-    phone: ''
+    password: ''
   });
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.phone) {
+    if (!formData.email || !formData.password) {
       toast({
         title: "Required Fields Missing",
         description: "Please fill all fields",
@@ -34,13 +33,23 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
       return;
     }
 
-    login(formData);
+    const { error } = await signIn(formData.email, formData.password);
+    
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
+
     toast({
       title: "Login Successful!",
       description: "Welcome to FireTourneys",
     });
     
-    setFormData({ name: '', email: '', phone: '' });
+    setFormData({ email: '', password: '' });
     onClose();
     onSuccess?.();
   };
@@ -53,19 +62,6 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-300 text-sm font-medium mb-2">
-              Full Name *
-            </label>
-            <Input
-              placeholder="Enter your name"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
-              required
-            />
-          </div>
-
           <div>
             <label className="block text-gray-300 text-sm font-medium mb-2">
               Email *
@@ -82,13 +78,13 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
           <div>
             <label className="block text-gray-300 text-sm font-medium mb-2">
-              Phone Number *
+              Password *
             </label>
             <Input
-              type="tel"
-              placeholder="Enter your phone number"
-              value={formData.phone}
-              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+              type="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
               required
             />

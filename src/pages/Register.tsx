@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Gamepad2, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Gamepad2, Zap, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,14 +12,13 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    freefireUID: '',
-    referralCode: ''
+    phone: ''
   });
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -27,10 +27,10 @@ const Register = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.username || !formData.email || !formData.password || !formData.freefireUID) {
+    if (!formData.name || !formData.email || !formData.password) {
       toast({
         title: "Required Fields Missing",
         description: "Please fill all required fields",
@@ -48,19 +48,23 @@ const Register = () => {
       return;
     }
 
-    // Register user
-    login({
-      name: formData.username,
-      email: formData.email,
-      phone: '1234567890'
-    });
+    const { error } = await signUp(formData.email, formData.password, formData.name, formData.phone);
+    
+    if (error) {
+      toast({
+        title: "Registration Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+      return;
+    }
 
     toast({
       title: "Registration Successful!",
-      description: "Welcome to FireTourneys",
+      description: "Please check your email to confirm your account",
     });
 
-    navigate('/dashboard');
+    navigate('/login');
   };
 
   return (
@@ -91,17 +95,17 @@ const Register = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label htmlFor="username" className="text-gray-300 text-sm font-medium">
-                  Username
+                <label htmlFor="name" className="text-gray-300 text-sm font-medium">
+                  Full Name
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
-                    id="username"
+                    id="name"
                     type="text"
-                    placeholder="Choose a username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                    placeholder="Enter your full name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="pl-10 bg-black/20 border-gray-600 text-white placeholder-gray-400"
                     required
                   />
@@ -127,19 +131,18 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="freefireUID" className="text-gray-300 text-sm font-medium">
-                  Free Fire UID
+                <label htmlFor="phone" className="text-gray-300 text-sm font-medium">
+                  Phone Number (Optional)
                 </label>
                 <div className="relative">
-                  <Gamepad2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
-                    id="freefireUID"
-                    type="text"
-                    placeholder="Enter your Free Fire UID"
-                    value={formData.freefireUID}
-                    onChange={(e) => setFormData({...formData, freefireUID: e.target.value})}
+                    id="phone"
+                    type="tel"
+                    placeholder="Enter your phone number"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="pl-10 bg-black/20 border-gray-600 text-white placeholder-gray-400"
-                    required
                   />
                 </div>
               </div>
@@ -192,20 +195,6 @@ const Register = () => {
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="referralCode" className="text-gray-300 text-sm font-medium">
-                  Referral Code (Optional)
-                </label>
-                <Input
-                  id="referralCode"
-                  type="text"
-                  placeholder="Enter referral code"
-                  value={formData.referralCode}
-                  onChange={(e) => setFormData({...formData, referralCode: e.target.value})}
-                  className="bg-black/20 border-gray-600 text-white placeholder-gray-400"
-                />
               </div>
 
               <div className="flex items-start space-x-3">

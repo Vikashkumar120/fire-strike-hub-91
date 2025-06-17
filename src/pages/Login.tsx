@@ -14,7 +14,7 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, signIn } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -23,7 +23,7 @@ const Login = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
@@ -35,30 +35,16 @@ const Login = () => {
       return;
     }
 
-    // Check for admin login
-    if (formData.email === 'admin@firetourneys.com' && formData.password === 'admin123') {
-      login({
-        name: 'Admin',
-        email: formData.email,
-        phone: '1234567890',
-        isAdmin: true
-      });
-
+    const { error } = await signIn(formData.email, formData.password);
+    
+    if (error) {
       toast({
-        title: "Admin Login Successful!",
-        description: "Welcome to FireTourneys Admin Panel",
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive"
       });
-
-      navigate('/admin');
       return;
     }
-
-    // Mock login - in real app, verify with backend
-    login({
-      name: formData.email.split('@')[0],
-      email: formData.email,
-      phone: '1234567890'
-    });
 
     toast({
       title: "Login Successful!",
@@ -154,13 +140,6 @@ const Login = () => {
               >
                 Sign In
               </Button>
-
-              {/* Admin Login Info */}
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                <p className="text-blue-400 text-sm font-medium mb-1">Admin Access:</p>
-                <p className="text-gray-300 text-xs">Email: admin@firetourneys.com</p>
-                <p className="text-gray-300 text-xs">Password: admin123</p>
-              </div>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">

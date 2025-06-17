@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import UPIPayment from './UPIPayment';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WalletTransaction {
   id: string;
@@ -28,92 +29,112 @@ const Wallet = () => {
   const [withdrawUPI, setWithdrawUPI] = useState('');
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   useEffect(() => {
-    // Load wallet data from localStorage
-    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-    const userWallet = walletData[user?.id || ''] || { balance: 0, transactions: [] };
-    setBalance(userWallet.balance);
-    setTransactions(userWallet.transactions);
+    if (user) {
+      fetchWalletData();
+    }
   }, [user]);
 
-  const saveWalletData = (newBalance: number, newTransactions: WalletTransaction[]) => {
+  const fetchWalletData = async () => {
+    if (!user) return;
+
     try {
-      const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-      walletData[user?.id || ''] = {
-        balance: newBalance,
-        transactions: newTransactions
-      };
-      localStorage.setItem('walletData', JSON.stringify(walletData));
-      
-      // Save admin transaction history for ALL deposit and withdraw requests
-      const latestTransaction = newTransactions[newTransactions.length - 1];
-      if (latestTransaction && (latestTransaction.type === 'deposit' || latestTransaction.type === 'withdraw')) {
-        // Get existing admin transactions
-        let adminTransactions = [];
-        try {
-          adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-        } catch (e) {
-          console.error('Error parsing admin transactions:', e);
-          adminTransactions = [];
-        }
-        
-        // Create admin transaction record
-        const adminTransaction = {
-          id: latestTransaction.id,
-          type: latestTransaction.type,
-          amount: latestTransaction.amount,
-          status: latestTransaction.status,
-          timestamp: latestTransaction.timestamp,
-          description: latestTransaction.description,
-          transactionId: latestTransaction.transactionId,
-          screenshot: latestTransaction.screenshot,
-          upiId: latestTransaction.upiId,
-          userId: user?.id || 'unknown',
-          userName: user?.name || user?.email || 'Unknown User',
-          userEmail: user?.email || 'No Email'
-        };
-        
-        // Add to admin transactions
-        adminTransactions.push(adminTransaction);
-        
-        // Keep only last 200 transactions to prevent storage overflow
-        if (adminTransactions.length > 200) {
-          adminTransactions = adminTransactions.slice(-200);
-        }
-        
-        try {
-          localStorage.setItem('adminTransactions', JSON.stringify(adminTransactions));
-          console.log('Admin transaction saved successfully:', adminTransaction);
-        } catch (e) {
-          console.error('Error saving admin transaction:', e);
-        }
+      // Fetch wallet balance
+      const { data: walletData, error: walletError } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', user.id)
+        .single();
+
+      if (walletError) throw walletError;
+      if (walletData) {
+        setBalance(Number(walletData.balance));
+      }
+
+      // Fetch transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (transactionsError) throw transactionsError;
+      if (transactionsData) {
+        const formattedTransactions = transactionsData.map(t => ({
+          id: t.id,
+          type: t.type as 'deposit' | 'withdraw' | 'tournament_payment',
+          amount: Number(t.amount),
+          status: t.status as 'pending' | 'completed' | 'failed',
+          timestamp: t.created_at,
+          description: t.description || '',
+          transactionId: t.transaction_id || undefined,
+          screenshot: t.screenshot || undefined,
+          upiId: t.upi_id || undefined
+        }));
+        setTransactions(formattedTransactions);
       }
     } catch (error) {
-      console.error('Storage error:', error);
-      
-      // Show user-friendly error but don't prevent the transaction
-      console.warn('Transaction saved locally but admin notification may have failed');
+      console.error('Error fetching wallet data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch wallet data",
+        variant: "destructive"
+      });
     }
   };
 
-  const handleDepositSuccess = (transactionId: string, screenshot?: string) => {
+  const saveWalletData = async (newBalance: number, newTransaction?: any) => {
+    if (!user) return;
+
+    try {
+      // Update wallet balance
+      await supabase
+        .from('wallets')
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id);
+
+      // Add transaction if provided
+      if (newTransaction) {
+        await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: user.id,
+            type: newTransaction.type,
+            amount: newTransaction.amount,
+            status: newTransaction.status,
+            description: newTransaction.description,
+            transaction_id: newTransaction.transactionId,
+            screenshot: newTransaction.screenshot,
+            upi_id: newTransaction.upiId
+          });
+      }
+
+      // Refresh data
+      fetchWalletData();
+    } catch (error) {
+      console.error('Error saving wallet data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save wallet data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDepositSuccess = async (transactionId: string, screenshot?: string) => {
     const amount = parseInt(depositAmount);
-    const newTransaction: WalletTransaction = {
-      id: `dep_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    const newTransaction = {
       type: 'deposit',
       amount,
       status: 'pending',
-      timestamp: new Date().toISOString(),
       description: `Deposit request of ₹${amount}`,
       transactionId,
       screenshot
     };
 
-    const newTransactions = [...transactions, newTransaction];
-    setTransactions(newTransactions);
-    saveWalletData(balance, newTransactions); // Don't update balance yet, wait for admin approval
+    await saveWalletData(balance, newTransaction); // Don't update balance yet, wait for admin approval
 
     setShowDeposit(false);
     setDepositAmount('');
@@ -136,7 +157,7 @@ const Wallet = () => {
     setShowDeposit(true);
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const amount = parseInt(withdrawAmount);
     
     if (!withdrawUPI.trim()) {
@@ -157,20 +178,15 @@ const Wallet = () => {
       return;
     }
 
-    // Create withdrawal request (don't deduct balance yet, wait for admin approval)
-    const newTransaction: WalletTransaction = {
-      id: `wit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    const newTransaction = {
       type: 'withdraw',
       amount,
       status: 'pending',
-      timestamp: new Date().toISOString(),
       description: `Withdrawal request of ₹${amount}`,
       upiId: withdrawUPI
     };
 
-    const newTransactions = [...transactions, newTransaction];
-    setTransactions(newTransactions);
-    saveWalletData(balance, newTransactions); // Keep same balance, don't deduct yet
+    await saveWalletData(balance, newTransaction); // Keep same balance, don't deduct yet
 
     setShowWithdraw(false);
     setWithdrawAmount('');
@@ -182,7 +198,7 @@ const Wallet = () => {
     });
   };
 
-  const payFromWallet = (amount: number) => {
+  const payFromWallet = async (amount: number) => {
     if (amount > balance) {
       toast({
         title: "Insufficient Balance",
@@ -194,20 +210,14 @@ const Wallet = () => {
     }
 
     const newBalance = balance - amount;
-    const newTransaction: WalletTransaction = {
-      id: Date.now().toString(),
+    const newTransaction = {
       type: 'tournament_payment',
       amount,
       status: 'completed',
-      timestamp: new Date().toISOString(),
-      description: `Tournament entry fee payment`,
+      description: `Tournament entry fee payment`
     };
 
-    const newTransactions = [...transactions, newTransaction];
-    setBalance(newBalance);
-    setTransactions(newTransactions);
-    saveWalletData(newBalance, newTransactions);
-
+    await saveWalletData(newBalance, newTransaction);
     return true;
   };
 
