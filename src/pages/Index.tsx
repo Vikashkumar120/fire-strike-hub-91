@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Users, Clock, Star } from 'lucide-react';
+import { Trophy, Users, Clock, Star, Zap, Shield, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import TournamentSlider from '@/components/TournamentSlider';
@@ -68,6 +68,38 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Live Stats Section */}
+      <section className="py-12 bg-black/10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="bg-black/30 backdrop-blur-md border border-cyan-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-cyan-400 mb-2">500+</div>
+                <div className="text-gray-300">Active Players</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-purple-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-purple-400 mb-2">₹2.5L+</div>
+                <div className="text-gray-300">Prize Pool</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-green-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-green-400 mb-2">50+</div>
+                <div className="text-gray-300">Tournaments</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-yellow-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="text-3xl font-bold text-yellow-400 mb-2">24/7</div>
+                <div className="text-gray-300">Live Support</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Tournament Slider Section */}
       <section className="py-16 bg-black/10">
         <TournamentSlider />
@@ -76,6 +108,10 @@ const Index = () => {
       {/* Features Section */}
       <section className="py-16 bg-black/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-white mb-4">Why Choose FireTourneys?</h2>
+            <p className="text-gray-300 text-lg">Experience the ultimate competitive gaming platform</p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card className="bg-black/30 backdrop-blur-md border border-purple-500/20 text-center">
               <CardContent className="p-6">
@@ -89,7 +125,7 @@ const Index = () => {
             <Card className="bg-black/30 backdrop-blur-md border border-cyan-500/20 text-center">
               <CardContent className="p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
+                  <Shield className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Fair Gameplay</h3>
                 <p className="text-gray-300">Compete in tournaments with a focus on fair play.</p>
@@ -98,10 +134,37 @@ const Index = () => {
             <Card className="bg-black/30 backdrop-blur-md border border-purple-500/20 text-center">
               <CardContent className="p-6">
                 <div className="w-12 h-12 bg-gradient-to-r from-cyan-400 to-purple-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-white" />
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Real-Time Updates</h3>
                 <p className="text-gray-300">Stay updated with live scores and tournament progress.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-green-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-green-400 to-blue-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Ranking System</h3>
+                <p className="text-gray-300">Track your progress with our advanced ranking system.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-yellow-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Community</h3>
+                <p className="text-gray-300">Join a vibrant community of passionate gamers.</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-black/30 backdrop-blur-md border border-pink-500/20 text-center">
+              <CardContent className="p-6">
+                <div className="w-12 h-12 bg-gradient-to-r from-pink-400 to-red-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                  <Star className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Premium Experience</h3>
+                <p className="text-gray-300">Enjoy high-quality streaming and gameplay.</p>
               </CardContent>
             </Card>
           </div>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, Users, Clock } from 'lucide-react';
+import { Trophy, Users, Clock, Code } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -18,12 +18,13 @@ interface Tournament {
   map: string;
   duration: string;
   thumbnail?: string;
+  customCode?: string;
 }
 
 const TournamentSlider = () => {
   const [tournaments, setTournaments] = React.useState<Tournament[]>([]);
 
-  React.useEffect(() => {
+  const loadTournaments = React.useCallback(() => {
     // Load tournaments from localStorage
     const savedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
     const defaultTournaments = [
@@ -38,7 +39,8 @@ const TournamentSlider = () => {
         status: "open",
         map: "Bermuda",
         duration: "45 min",
-        thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&h=400&fit=crop"
+        thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&h=400&fit=crop",
+        customCode: "SQUAD2024"
       },
       {
         id: 2,
@@ -51,7 +53,8 @@ const TournamentSlider = () => {
         status: "filling",
         map: "Purgatory",
         duration: "30 min",
-        thumbnail: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=400&fit=crop"
+        thumbnail: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=400&fit=crop",
+        customCode: "SOLO2024"
       },
       {
         id: 3,
@@ -64,13 +67,38 @@ const TournamentSlider = () => {
         status: "open",
         map: "Kalahari",
         duration: "40 min",
-        thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop"
+        thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop",
+        customCode: "DUO2024"
       }
     ];
 
     const allTournaments = savedTournaments.length > 0 ? savedTournaments : defaultTournaments;
     setTournaments(allTournaments);
   }, []);
+
+  React.useEffect(() => {
+    loadTournaments();
+
+    // Listen for tournament updates
+    const handleTournamentUpdate = () => {
+      loadTournaments();
+    };
+
+    window.addEventListener('tournamentUpdated', handleTournamentUpdate);
+    
+    return () => {
+      window.removeEventListener('tournamentUpdated', handleTournamentUpdate);
+    };
+  }, [loadTournaments]);
+
+  if (tournaments.length === 0) {
+    return (
+      <div className="w-full max-w-6xl mx-auto px-4 text-center">
+        <h2 className="text-3xl font-bold text-white mb-8">Featured Tournaments</h2>
+        <p className="text-gray-400">No tournaments available at the moment.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4">
@@ -95,6 +123,14 @@ const TournamentSlider = () => {
                       {tournament.status.toUpperCase()}
                     </span>
                   </div>
+                  {tournament.customCode && (
+                    <div className="absolute top-2 left-2">
+                      <span className="bg-black/70 backdrop-blur-sm text-cyan-400 px-2 py-1 rounded text-xs font-bold flex items-center">
+                        <Code className="w-3 h-3 mr-1" />
+                        {tournament.customCode}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <CardContent className="p-4">
                   <h3 className="text-lg font-bold text-white mb-2">{tournament.title}</h3>

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { Upload, Image as ImageIcon, Code, Dice6 } from 'lucide-react';
 
 const TournamentCreation = () => {
   const [formData, setFormData] = useState({
@@ -20,10 +20,16 @@ const TournamentCreation = () => {
     map: '',
     duration: '',
     description: '',
-    thumbnail: ''
+    thumbnail: '',
+    customCode: ''
   });
   const [thumbnailPreview, setThumbnailPreview] = useState('');
   const { toast } = useToast();
+
+  const generateRandomCode = () => {
+    const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setFormData(prev => ({ ...prev, customCode: randomCode }));
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -68,6 +74,9 @@ const TournamentCreation = () => {
     const updatedTournaments = [...existingTournaments, newTournament];
     localStorage.setItem('tournaments', JSON.stringify(updatedTournaments));
 
+    // Trigger a custom event to notify other components
+    window.dispatchEvent(new CustomEvent('tournamentUpdated'));
+
     toast({
       title: "Tournament Created!",
       description: `${formData.title} has been created successfully.`
@@ -84,7 +93,8 @@ const TournamentCreation = () => {
       map: '',
       duration: '',
       description: '',
-      thumbnail: ''
+      thumbnail: '',
+      customCode: ''
     });
     setThumbnailPreview('');
   };
@@ -193,6 +203,30 @@ const TournamentCreation = () => {
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
                 className="bg-black/20 border-gray-600 text-white"
               />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="customCode" className="text-gray-300 flex items-center">
+              <Code className="w-4 h-4 mr-2" />
+              Custom Tournament Code
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id="customCode"
+                value={formData.customCode}
+                onChange={(e) => handleInputChange('customCode', e.target.value)}
+                placeholder="Enter custom code or generate random"
+                className="bg-black/20 border-gray-600 text-white flex-1"
+              />
+              <Button
+                type="button"
+                onClick={generateRandomCode}
+                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
+              >
+                <Dice6 className="w-4 h-4 mr-1" />
+                Generate
+              </Button>
             </div>
           </div>
 
