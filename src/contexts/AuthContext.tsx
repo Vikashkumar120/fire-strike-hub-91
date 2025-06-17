@@ -21,6 +21,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, name: string, phone?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -38,11 +39,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile
+          // Fetch user profile with delay to prevent deadlock
           setTimeout(async () => {
             try {
               const { data: profileData, error } = await supabase
@@ -52,12 +54,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 .single();
               
               if (!error && profileData) {
+                console.log('Profile fetched:', profileData);
                 setProfile(profileData);
+              } else {
+                console.error('Error fetching profile:', error);
               }
             } catch (error) {
               console.error('Error fetching profile:', error);
             }
-          }, 0);
+          }, 100);
         } else {
           setProfile(null);
         }
@@ -68,6 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -77,6 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, name: string, phone?: string) => {
+    console.log('Attempting signup for:', email);
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -91,19 +98,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
     
+    if (error) {
+      console.error('Signup error:', error);
+    } else {
+      console.log('Signup successful');
+    }
+    
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting signin for:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
     
+    if (error) {
+      console.error('Signin error:', error);
+    } else {
+      console.log('Signin successful');
+    }
+    
+    return { error };
+  };
+
+  const signInWithGoogle = async () => {
+    console.log('Attempting Google signin');
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
+    });
+    
+    if (error) {
+      console.error('Google signin error:', error);
+    }
+    
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Signing out');
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
@@ -117,7 +154,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       session,
       loading,
       signUp,
-      signIn, 
+      signIn,
+      signInWithGoogle,
       signOut, 
       isAuthenticated: !!user,
       isAdmin: profile?.is_admin || false
