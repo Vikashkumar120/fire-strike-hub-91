@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Star, Play, Target, Zap, Crown, Medal, Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';
@@ -179,7 +178,7 @@ const Index = () => {
             </h2>
             <p className="text-xl text-gray-300">Join these exciting tournaments happening right now!</p>
           </div>
-          <TournamentSlider tournaments={tournaments} />
+          <TournamentSlider />
           <div className="text-center mt-8">
             <Link to="/tournaments">
               <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
