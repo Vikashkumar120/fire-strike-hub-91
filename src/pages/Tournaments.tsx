@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Users, Clock, Star, Filter, Search, MapPin, Calendar, Zap, Crown, Medal, Target } from 'lucide-react';
+import { Trophy, Users, Clock, Star, Filter, Search, MapPin, Calendar, Zap, Crown, Medal, Target, Gift, Flame } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,7 +31,8 @@ const Tournaments = () => {
       entryFee: "₹100",
       status: "open",
       map: "Bermuda",
-      duration: "45 min"
+      duration: "45 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     },
     {
       id: 2,
@@ -44,7 +44,8 @@ const Tournaments = () => {
       entryFee: "₹50",
       status: "filling",
       map: "Purgatory",
-      duration: "30 min"
+      duration: "30 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     },
     {
       id: 3,
@@ -56,7 +57,8 @@ const Tournaments = () => {
       entryFee: "₹150",
       status: "open",
       map: "Kalahari",
-      duration: "40 min"
+      duration: "40 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     },
     {
       id: 4,
@@ -68,7 +70,8 @@ const Tournaments = () => {
       entryFee: "₹500",
       status: "premium",
       map: "Bermuda",
-      duration: "60 min"
+      duration: "60 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     },
     {
       id: 5,
@@ -80,7 +83,8 @@ const Tournaments = () => {
       entryFee: "₹25",
       status: "open",
       map: "Purgatory",
-      duration: "25 min"
+      duration: "25 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     },
     {
       id: 6,
@@ -92,14 +96,18 @@ const Tournaments = () => {
       entryFee: "₹200",
       status: "open",
       map: "Kalahari",
-      duration: "50 min"
+      duration: "50 min",
+      thumbnail: "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
     }
   ];
 
   useEffect(() => {
     // Load tournaments from localStorage (admin created) and merge with defaults
     const storedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
-    const allTournaments = [...defaultTournaments, ...storedTournaments];
+    const allTournaments = [...defaultTournaments, ...storedTournaments.map(t => ({
+      ...t,
+      thumbnail: t.thumbnail || "/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png"
+    }))];
     setTournaments(allTournaments);
     
     console.log('Loaded tournaments:', allTournaments);
@@ -171,80 +179,6 @@ const Tournaments = () => {
     
     // Refresh tournaments to show updated player counts
     const storedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
-    const defaultTournaments = [
-      {
-        id: 1,
-        title: "Squad Showdown Championship",
-        type: "Squad",
-        prize: "₹25,000",
-        players: "48/64",
-        startTime: "2024-01-20 18:00",
-        entryFee: "₹100",
-        status: "open",
-        map: "Bermuda",
-        duration: "45 min"
-      },
-      {
-        id: 2,
-        title: "Solo Warriors Battle",
-        type: "Solo",
-        prize: "₹15,000",
-        players: "89/100",
-        startTime: "2024-01-20 20:00",
-        entryFee: "₹50",
-        status: "filling",
-        map: "Purgatory",
-        duration: "30 min"
-      },
-      {
-        id: 3,
-        title: "Duo Masters Arena",
-        type: "Duo",
-        prize: "₹18,000",
-        players: "24/32",
-        startTime: "2024-01-21 16:00",
-        entryFee: "₹150",
-        status: "open",
-        map: "Kalahari",
-        duration: "40 min"
-      },
-      {
-        id: 4,
-        title: "Elite Championship",
-        type: "Squad",
-        prize: "₹50,000",
-        players: "12/16",
-        startTime: "2024-01-22 19:00",
-        entryFee: "₹500",
-        status: "premium",
-        map: "Bermuda",
-        duration: "60 min"
-      },
-      {
-        id: 5,
-        title: "Rookie Tournament",
-        type: "Solo",
-        prize: "₹5,000",
-        players: "45/50",
-        startTime: "2024-01-20 14:00",
-        entryFee: "₹25",
-        status: "open",
-        map: "Purgatory",
-        duration: "25 min"
-      },
-      {
-        id: 6,
-        title: "Weekend Warriors",
-        type: "Squad",
-        prize: "₹35,000",
-        players: "32/48",
-        startTime: "2024-01-21 20:00",
-        entryFee: "₹200",
-        status: "open",
-        map: "Kalahari",
-        duration: "50 min"
-      }
-    ];
     const allTournaments = [...defaultTournaments, ...storedTournaments];
     setTournaments(allTournaments);
   };
@@ -289,44 +223,58 @@ const Tournaments = () => {
         </div>
       </nav>
 
-      {/* Enhanced Header */}
-      <div className="relative py-16 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Enhanced Header with animated background */}
+      <div className="relative py-20 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 backdrop-blur-sm overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        </div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-8">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full blur-xl opacity-30 animate-pulse"></div>
-                <div className="relative p-4 bg-black/30 rounded-full border border-cyan-500/30">
-                  <Trophy className="w-12 h-12 text-cyan-400" />
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full blur-2xl opacity-40 animate-pulse"></div>
+                <div className="relative p-6 bg-black/30 rounded-full border border-cyan-500/30">
+                  <Trophy className="w-16 h-16 text-cyan-400" />
                 </div>
               </div>
             </div>
-            <h1 className="text-5xl font-bold text-white mb-4">
+            <h1 className="text-6xl font-bold text-white mb-6">
               Live <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Tournaments</span>
             </h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-8">
               Join the ultimate Free Fire tournaments and compete for amazing prizes with players worldwide!
             </p>
+            <div className="flex justify-center space-x-6 text-sm">
+              <div className="flex items-center space-x-2 text-cyan-400">
+                <Flame className="w-5 h-5" />
+                <span>{tournaments.length} Live Tournaments</span>
+              </div>
+              <div className="flex items-center space-x-2 text-purple-400">
+                <Gift className="w-5 h-5" />
+                <span>₹{Math.floor(Math.random() * 500 + 100)}K+ Total Prizes</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Enhanced Filters */}
-        <div className="bg-black/30 backdrop-blur-md border border-purple-500/20 rounded-xl p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        {/* Enhanced Filters with better design */}
+        <div className="bg-black/40 backdrop-blur-md border border-purple-500/20 rounded-2xl p-8 mb-10 shadow-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 placeholder="Search tournaments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-black/30 border-gray-600 text-white placeholder-gray-400 focus:border-cyan-500"
+                className="pl-12 bg-black/30 border-gray-600 text-white placeholder-gray-400 focus:border-cyan-500 rounded-xl h-12"
               />
             </div>
             
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="bg-black/30 border-gray-600 text-white focus:border-cyan-500">
+              <SelectTrigger className="bg-black/30 border-gray-600 text-white focus:border-cyan-500 rounded-xl h-12">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Filter by type" />
               </SelectTrigger>
@@ -339,7 +287,7 @@ const Tournaments = () => {
             </Select>
 
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="bg-black/30 border-gray-600 text-white focus:border-cyan-500">
+              <SelectTrigger className="bg-black/30 border-gray-600 text-white focus:border-cyan-500 rounded-xl h-12">
                 <Medal className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -350,40 +298,52 @@ const Tournaments = () => {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center space-x-2 text-gray-300">
+            <div className="flex items-center justify-center space-x-3 bg-black/30 rounded-xl px-4 py-3 border border-gray-600">
               <Trophy className="w-5 h-5 text-cyan-400" />
-              <span className="text-sm">{sortedTournaments.length} Tournaments Found</span>
+              <span className="text-white font-medium">{sortedTournaments.length} Tournaments</span>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Tournament Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Enhanced Tournament Grid with better cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {sortedTournaments.map((tournament) => (
-            <Card key={tournament.id} className="bg-black/40 backdrop-blur-md border border-purple-500/20 hover:border-purple-500/40 transition-all duration-300 group overflow-hidden hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20">
-              <div className="h-48 bg-gradient-to-br from-purple-600 via-cyan-500 to-pink-500 relative overflow-hidden">
-                <div className="absolute inset-0 bg-black/50"></div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
+            <Card key={tournament.id} className="bg-black/40 backdrop-blur-md border border-purple-500/20 hover:border-purple-500/40 transition-all duration-500 group overflow-hidden hover:scale-[1.02] hover:shadow-2xl hover:shadow-cyan-500/20 rounded-2xl">
+              {/* Tournament Thumbnail */}
+              <div className="h-48 relative overflow-hidden">
+                <img 
+                  src={tournament.thumbnail} 
+                  alt={tournament.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                 
                 {/* Status Badge */}
-                <div className="absolute top-3 right-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(tournament.status)} flex items-center space-x-1`}>
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(tournament.status)} flex items-center space-x-1 backdrop-blur-md`}>
                     {getStatusIcon(tournament.status)}
                     <span>{tournament.status.toUpperCase()}</span>
                   </span>
                 </div>
 
+                {/* Tournament Type Badge */}
+                <div className="absolute top-4 left-4">
+                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 backdrop-blur-md">
+                    {tournament.type}
+                  </span>
+                </div>
+
                 {/* Tournament Info Overlay */}
-                <div className="absolute bottom-3 left-4 right-4">
-                  <h3 className="text-white font-bold text-lg mb-1 line-clamp-2">{tournament.title}</h3>
-                  <div className="flex items-center space-x-3 text-sm">
-                    <span className="flex items-center text-cyan-300">
-                      <Users className="w-4 h-4 mr-1" />
-                      {tournament.type}
-                    </span>
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-white font-bold text-xl mb-2 line-clamp-2">{tournament.title}</h3>
+                  <div className="flex items-center space-x-4 text-sm">
                     <span className="flex items-center text-purple-300">
                       <MapPin className="w-4 h-4 mr-1" />
                       {tournament.map}
+                    </span>
+                    <span className="flex items-center text-cyan-300">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {tournament.duration}
                     </span>
                   </div>
                 </div>
@@ -391,10 +351,10 @@ const Tournaments = () => {
               
               <CardContent className="p-6">
                 {/* Prize and Players */}
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-yellow-500/20 rounded-lg">
-                      <Trophy className="w-5 h-5 text-yellow-400" />
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-3 bg-yellow-500/20 rounded-xl">
+                      <Trophy className="w-6 h-6 text-yellow-400" />
                     </div>
                     <div>
                       <span className="text-2xl font-bold text-yellow-400">{tournament.prize}</span>
@@ -403,7 +363,7 @@ const Tournaments = () => {
                   </div>
                   <div className="text-right">
                     <div className="flex items-center space-x-1 text-green-400 text-lg font-bold">
-                      <Users className="w-4 h-4" />
+                      <Users className="w-5 h-5" />
                       <span>{tournament.players}</span>
                     </div>
                     <p className="text-xs text-gray-400">Players</p>
@@ -411,19 +371,19 @@ const Tournaments = () => {
                 </div>
 
                 {/* Tournament Details */}
-                <div className="space-y-3 mb-4">
+                <div className="space-y-3 mb-6">
                   <div className="flex justify-between items-center text-sm">
-                    <div className="flex items-center space-x-1 text-gray-300">
+                    <div className="flex items-center space-x-2 text-gray-300">
                       <Calendar className="w-4 h-4" />
                       <span>{new Date(tournament.startTime).toLocaleDateString()}</span>
                     </div>
-                    <div className="flex items-center space-x-1 text-gray-300">
+                    <div className="flex items-center space-x-2 text-gray-300">
                       <Clock className="w-4 h-4" />
                       <span>{new Date(tournament.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                     </div>
                   </div>
                   
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-sm bg-black/30 rounded-lg p-3">
                     <span className="text-gray-300">
                       Entry Fee: <span className="text-cyan-400 font-bold">{tournament.entryFee}</span>
                     </span>
@@ -434,9 +394,9 @@ const Tournaments = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Button 
-                    className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 font-medium transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/30"
+                    className="flex-1 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 font-medium transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/30 rounded-xl"
                     onClick={() => handleJoinTournament(tournament)}
                   >
                     <Trophy className="w-4 h-4 mr-2" />
@@ -445,7 +405,7 @@ const Tournaments = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black transition-all duration-300"
+                    className="border-yellow-500/50 text-yellow-400 hover:bg-yellow-500 hover:text-black transition-all duration-300 rounded-xl px-4"
                   >
                     <Star className="w-4 h-4" />
                   </Button>
@@ -455,18 +415,18 @@ const Tournaments = () => {
           ))}
         </div>
 
-        {/* No Results State */}
+        {/* Enhanced No Results State */}
         {sortedTournaments.length === 0 && (
-          <div className="text-center py-16">
-            <div className="relative inline-block mb-6">
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full blur-xl opacity-20"></div>
-              <div className="relative p-6 bg-black/30 rounded-full border border-gray-700">
-                <Search className="w-16 h-16 text-gray-400" />
+          <div className="text-center py-20">
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full blur-2xl opacity-20 animate-pulse"></div>
+              <div className="relative p-8 bg-black/30 rounded-full border border-gray-700">
+                <Search className="w-20 h-20 text-gray-400" />
               </div>
             </div>
-            <h3 className="text-2xl font-bold text-white mb-2">No tournaments found</h3>
-            <p className="text-gray-400 mb-6">Try adjusting your search or filter criteria</p>
-            <Button onClick={() => {setSearchTerm(''); setFilterType('all');}} className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
+            <h3 className="text-3xl font-bold text-white mb-4">No tournaments found</h3>
+            <p className="text-gray-400 mb-8 text-lg">Try adjusting your search or filter criteria</p>
+            <Button onClick={() => {setSearchTerm(''); setFilterType('all');}} className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 px-8 py-3 text-lg rounded-xl">
               Clear Filters
             </Button>
           </div>

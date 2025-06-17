@@ -47,18 +47,21 @@ const Wallet = () => {
       };
       localStorage.setItem('walletData', JSON.stringify(walletData));
       
-      // Save admin transaction history with size limit
+      // Save admin transaction history properly
       const latestTransaction = newTransactions[newTransactions.length - 1];
-      if (latestTransaction) {
+      if (latestTransaction && (latestTransaction.type === 'deposit' || latestTransaction.type === 'withdraw')) {
         let adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
         
-        // Add new transaction
-        adminTransactions.push({
+        // Add new transaction with complete user info
+        const adminTransaction = {
           ...latestTransaction,
           userId: user?.id,
-          userName: user?.name,
-          userEmail: user?.email
-        });
+          userName: user?.name || user?.email,
+          userEmail: user?.email,
+          createdAt: new Date().toISOString()
+        };
+        
+        adminTransactions.push(adminTransaction);
         
         // Keep only last 100 transactions to prevent quota exceeded
         if (adminTransactions.length > 100) {
@@ -66,6 +69,7 @@ const Wallet = () => {
         }
         
         localStorage.setItem('adminTransactions', JSON.stringify(adminTransactions));
+        console.log('Admin transaction saved:', adminTransaction);
       }
     } catch (error) {
       console.error('Storage error:', error);

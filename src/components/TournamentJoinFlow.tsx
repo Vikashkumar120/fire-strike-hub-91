@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Camera, Upload, AlertCircle, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -121,10 +120,16 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
       paymentMethod: paymentMethod,
       paymentData: paymentData,
       result: null,
-      resultScreenshot: null
+      resultScreenshot: null,
+      status: 'joined'
     };
 
-    // Save to match history
+    // Save to user's match history
+    const userMatchHistory = JSON.parse(localStorage.getItem(`matchHistory_${user.id}`) || '[]');
+    userMatchHistory.push(matchData);
+    localStorage.setItem(`matchHistory_${user.id}`, JSON.stringify(userMatchHistory));
+
+    // Also save to global match history for backward compatibility
     const matchHistory = JSON.parse(localStorage.getItem('matchHistory') || '[]');
     matchHistory.push(matchData);
     localStorage.setItem('matchHistory', JSON.stringify(matchHistory));
@@ -140,11 +145,14 @@ const TournamentJoinFlow = ({ tournament, isOpen, onClose }: TournamentJoinFlowP
       tournamentDetails: {
         uid: userDetails.uid,
         teamName: userDetails.gameName,
-        entryFee: getEntryFeeAmount()
+        entryFee: getEntryFeeAmount(),
+        slotNumber: matchData.slotNumber
       },
       timestamp: new Date().toISOString()
     });
     localStorage.setItem('userActivity', JSON.stringify(userActivity));
+
+    console.log('Match joined successfully:', matchData);
 
     toast({
       title: "Tournament Joined Successfully!",
