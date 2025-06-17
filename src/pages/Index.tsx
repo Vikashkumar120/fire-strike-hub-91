@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Clock, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import TournamentSlider from '@/components/TournamentSlider';
 
 const Index = () => {
   return (
@@ -64,6 +66,11 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Tournament Slider Section */}
+      <section className="py-16 bg-black/10">
+        <TournamentSlider />
       </section>
 
       {/* Features Section */}
