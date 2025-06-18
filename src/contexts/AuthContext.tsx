@@ -48,12 +48,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('Profile fetched successfully:', profileData);
         setProfile(profileData);
       } else {
-        console.error('Error fetching profile:', error);
-        setProfile(null);
+        console.log('No profile found, creating basic profile object');
+        // Create a basic profile object if none exists
+        setProfile({
+          id: userId,
+          name: '',
+          email: user?.email || '',
+          is_admin: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
-      setProfile(null);
+      // Fallback profile
+      setProfile({
+        id: userId,
+        name: '',
+        email: user?.email || '',
+        is_admin: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
     }
   };
 
@@ -62,13 +78,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchUserProfile(session.user.id);
+          // Use setTimeout to avoid blocking the auth state change
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
         }

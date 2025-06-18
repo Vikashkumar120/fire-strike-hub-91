@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Users, Star, Play, Target, Zap, Crown, Medal, Calendar, Clock, MapPin, ArrowRight } from 'lucide-react';

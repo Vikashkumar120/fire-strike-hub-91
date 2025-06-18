@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trophy, User, Bell, History, Wallet as WalletIcon, Settings, LogOut, Home } from 'lucide-react';
+import { Trophy, User, Bell, History, Wallet as WalletIcon, LogOut, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,13 +26,23 @@ const Dashboard = () => {
     navigate('/');
   };
 
-  if (!user || !profile) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">Redirecting to login...</div>
       </div>
     );
   }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading user data...</div>
+      </div>
+    );
+  }
+
+  const userDisplayName = profile?.name || user.email?.split('@')[0] || 'User';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -49,7 +59,7 @@ const Dashboard = () => {
               <span className="text-xl font-bold text-white">FireTourneys</span>
             </Link>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-300">Welcome, {profile.name || user.email?.split('@')[0]}</span>
+              <span className="text-gray-300">Welcome, {userDisplayName}</span>
               <Link to="/">
                 <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
                   <Home className="w-4 h-4 mr-2" />
@@ -73,7 +83,7 @@ const Dashboard = () => {
         {/* Dashboard Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome back, {profile.name || user.email?.split('@')[0]}!
+            Welcome back, {userDisplayName}!
           </h1>
           <p className="text-gray-300 text-lg">
             Manage your tournaments, view your progress, and stay updated with notifications.
