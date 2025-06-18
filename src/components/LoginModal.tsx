@@ -61,26 +61,41 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    const { error } = await signInWithGoogle();
     
-    if (error) {
+    try {
+      const { error } = await signInWithGoogle();
+      
+      if (error) {
+        console.error('Google login error:', error);
+        toast({
+          title: "Google Login Failed",
+          description: "Please check your Google OAuth configuration",
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Don't close modal immediately for OAuth as it redirects
       toast({
-        title: "Google Login Failed",
-        description: error.message,
+        title: "Redirecting to Google",
+        description: "Please complete authentication in the new window",
+      });
+      
+    } catch (error) {
+      console.error('Google login exception:', error);
+      toast({
+        title: "Google Login Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
       setLoading(false);
-      return;
     }
-
-    onClose();
-    onSuccess?.();
-    setLoading(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-w-md">
+      <DialogContent className="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-gray-700 max-w-md w-full mx-4">
         <DialogHeader>
           <DialogTitle className="text-white text-center text-xl">Login to Join Tournament</DialogTitle>
         </DialogHeader>
@@ -114,7 +129,7 @@ const LoginModal = ({ isOpen, onClose, onSuccess }: LoginModalProps) => {
             />
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button 
               type="button"
               variant="outline" 

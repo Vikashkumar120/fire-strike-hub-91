@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trophy, User, Bell, History, Wallet as WalletIcon, LogOut, Home } from 'lucide-react';
+import { Trophy, User, Bell, History, Wallet as WalletIcon, LogOut, Home, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,10 +10,12 @@ import NotificationCenter from '@/components/NotificationCenter';
 import MatchHistory from '@/components/MatchHistory';
 import Wallet from '@/components/Wallet';
 import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const { user, profile, signOut, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isAuthenticated) {
@@ -58,7 +60,9 @@ const Dashboard = () => {
               />
               <span className="text-xl font-bold text-white">FireTourneys</span>
             </Link>
-            <div className="flex items-center space-x-4">
+            
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-4">
               <span className="text-gray-300">Welcome, {userDisplayName}</span>
               <Link to="/">
                 <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
@@ -75,87 +79,140 @@ const Dashboard = () => {
                 Logout
               </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-white hover:bg-white/10"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile Navigation Menu */}
+          {isMobileMenuOpen && (
+            <div className="md:hidden py-4 border-t border-gray-700">
+              <div className="flex flex-col space-y-3">
+                <span className="text-gray-300 px-2">Welcome, {userDisplayName}</span>
+                <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
+                    <Home className="w-4 h-4 mr-2" />
+                    Home
+                  </Button>
+                </Link>
+                <Button 
+                  variant="outline" 
+                  className="w-full border-red-500 text-red-400 hover:bg-red-500 hover:text-black"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleSignOut();
+                  }}
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
             Welcome back, {userDisplayName}!
           </h1>
-          <p className="text-gray-300 text-lg">
+          <p className="text-gray-300 text-sm md:text-lg">
             Manage your tournaments, view your progress, and stay updated with notifications.
           </p>
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
           <Card className="bg-black/40 border-cyan-500/30 backdrop-blur-md">
-            <CardContent className="p-6 text-center">
-              <Trophy className="w-8 h-8 text-cyan-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-cyan-400">
+            <CardContent className="p-4 md:p-6 text-center">
+              <Trophy className="w-6 h-6 md:w-8 md:h-8 text-cyan-400 mx-auto mb-2 md:mb-3" />
+              <div className="text-lg md:text-2xl font-bold text-cyan-400">
                 {JSON.parse(localStorage.getItem('matchHistory') || '[]')
                   .filter(match => match.userId === user.id).length}
               </div>
-              <div className="text-gray-300 text-sm">Tournaments Joined</div>
+              <div className="text-gray-300 text-xs md:text-sm">Tournaments Joined</div>
             </CardContent>
           </Card>
 
           <Card className="bg-black/40 border-green-500/30 backdrop-blur-md">
-            <CardContent className="p-6 text-center">
-              <Trophy className="w-8 h-8 text-green-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-green-400">
+            <CardContent className="p-4 md:p-6 text-center">
+              <Trophy className="w-6 h-6 md:w-8 md:h-8 text-green-400 mx-auto mb-2 md:mb-3" />
+              <div className="text-lg md:text-2xl font-bold text-green-400">
                 {JSON.parse(localStorage.getItem('matchHistory') || '[]')
                   .filter(match => match.userId === user.id && match.result === 'winner').length}
               </div>
-              <div className="text-gray-300 text-sm">Wins</div>
+              <div className="text-gray-300 text-xs md:text-sm">Wins</div>
             </CardContent>
           </Card>
 
           <Card className="bg-black/40 border-purple-500/30 backdrop-blur-md">
-            <CardContent className="p-6 text-center">
-              <Bell className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-purple-400">
+            <CardContent className="p-4 md:p-6 text-center">
+              <Bell className="w-6 h-6 md:w-8 md:h-8 text-purple-400 mx-auto mb-2 md:mb-3" />
+              <div className="text-lg md:text-2xl font-bold text-purple-400">
                 {JSON.parse(localStorage.getItem('notifications') || '[]')
                   .filter(notif => notif.userId === user.id && !notif.read).length}
               </div>
-              <div className="text-gray-300 text-sm">Unread Notifications</div>
+              <div className="text-gray-300 text-xs md:text-sm">Notifications</div>
             </CardContent>
           </Card>
 
           <Card className="bg-black/40 border-yellow-500/30 backdrop-blur-md">
-            <CardContent className="p-6 text-center">
-              <WalletIcon className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
-              <div className="text-2xl font-bold text-yellow-400">₹0</div>
-              <div className="text-gray-300 text-sm">Wallet Balance</div>
+            <CardContent className="p-4 md:p-6 text-center">
+              <WalletIcon className="w-6 h-6 md:w-8 md:h-8 text-yellow-400 mx-auto mb-2 md:mb-3" />
+              <div className="text-lg md:text-2xl font-bold text-yellow-400">₹0</div>
+              <div className="text-gray-300 text-xs md:text-sm">Wallet Balance</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Main Dashboard Content */}
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-black/30 border border-purple-500/20">
-            <TabsTrigger value="profile" className="flex items-center space-x-2 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+          <TabsList className="grid w-full grid-cols-5 bg-black/30 border border-purple-500/20 h-auto">
+            <TabsTrigger 
+              value="profile" 
+              className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400 p-2 md:p-3"
+            >
               <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
+              <span className="text-xs md:text-sm">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center space-x-2 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400">
+            <TabsTrigger 
+              value="notifications" 
+              className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-400 p-2 md:p-3"
+            >
               <Bell className="w-4 h-4" />
-              <span className="hidden sm:inline">Notifications</span>
+              <span className="text-xs md:text-sm">Notifications</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center space-x-2 data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400">
+            <TabsTrigger 
+              value="history" 
+              className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 p-2 md:p-3"
+            >
               <History className="w-4 h-4" />
-              <span className="hidden sm:inline">History</span>
+              <span className="text-xs md:text-sm">History</span>
             </TabsTrigger>
-            <TabsTrigger value="wallet" className="flex items-center space-x-2 data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">
+            <TabsTrigger 
+              value="wallet" 
+              className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400 p-2 md:p-3"
+            >
               <WalletIcon className="w-4 h-4" />
-              <span className="hidden sm:inline">Wallet</span>
+              <span className="text-xs md:text-sm">Wallet</span>
             </TabsTrigger>
-            <TabsTrigger value="tournaments" className="flex items-center space-x-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">
+            <TabsTrigger 
+              value="tournaments" 
+              className="flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400 p-2 md:p-3"
+            >
               <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Tournaments</span>
+              <span className="text-xs md:text-sm">Tournaments</span>
             </TabsTrigger>
           </TabsList>
 
