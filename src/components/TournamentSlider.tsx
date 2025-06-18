@@ -1,174 +1,270 @@
 
-import React from 'react';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Card, CardContent } from '@/components/ui/card';
-import { Trophy, Users, Clock, Code } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Calendar, Users, Trophy, MapPin, Timer } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Tournament {
-  id: number;
+  id: string;
   title: string;
   type: string;
   prize: string;
-  players: string;
-  startTime: string;
-  entryFee: string;
+  entry_fee: number;
+  max_players: number;
+  current_players: number;
+  start_time: string;
   status: string;
-  map: string;
-  duration: string;
+  map?: string;
+  duration?: string;
   thumbnail?: string;
-  customCode?: string;
+  custom_code?: string;
 }
 
 const TournamentSlider = () => {
-  const [tournaments, setTournaments] = React.useState<Tournament[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const loadTournaments = React.useCallback(() => {
-    // Load tournaments from localStorage
-    const savedTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
-    const defaultTournaments = [
-      {
-        id: 1,
-        title: "Squad Showdown Championship",
-        type: "Squad",
-        prize: "₹25,000",
-        players: "48/64",
-        startTime: "2024-01-20 18:00",
-        entryFee: "₹100",
-        status: "open",
-        map: "Bermuda",
-        duration: "45 min",
-        thumbnail: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&h=400&fit=crop",
-        customCode: "SQUAD2024"
-      },
-      {
-        id: 2,
-        title: "Solo Warriors Battle",
-        type: "Solo",
-        prize: "₹15,000",
-        players: "89/100",
-        startTime: "2024-01-20 20:00",
-        entryFee: "₹50",
-        status: "filling",
-        map: "Purgatory",
-        duration: "30 min",
-        thumbnail: "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&h=400&fit=crop",
-        customCode: "SOLO2024"
-      },
-      {
-        id: 3,
-        title: "Duo Masters Arena",
-        type: "Duo",
-        prize: "₹18,000",
-        players: "24/32",
-        startTime: "2024-01-21 16:00",
-        entryFee: "₹150",
-        status: "open",
-        map: "Kalahari",
-        duration: "40 min",
-        thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop",
-        customCode: "DUO2024"
-      }
-    ];
-
-    const allTournaments = savedTournaments.length > 0 ? savedTournaments : defaultTournaments;
-    setTournaments(allTournaments);
+  useEffect(() => {
+    fetchTournaments();
   }, []);
 
-  React.useEffect(() => {
-    loadTournaments();
+  const fetchTournaments = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .in('status', ['open', 'started'])
+        .order('start_time', { ascending: true })
+        .limit(5);
 
-    // Listen for tournament updates
-    const handleTournamentUpdate = () => {
-      loadTournaments();
-    };
+      if (error) {
+        console.error('Error fetching tournaments:', error);
+        return;
+      }
 
-    window.addEventListener('tournamentUpdated', handleTournamentUpdate);
+      if (data && data.length > 0) {
+        setTournaments(data);
+      } else {
+        // Fallback to sample data if no tournaments in database
+        setTournaments([
+          {
+            id: 'sample-1',
+            title: 'Squad Showdown Championship',
+            type: 'Squad',
+            prize: '₹25,000',
+            entry_fee: 100,
+            max_players: 64,
+            current_players: 32,
+            start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+            status: 'open',
+            map: 'Bermuda',
+            duration: '45 min',
+            thumbnail: '/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png',
+            custom_code: 'SQUAD2024'
+          },
+          {
+            id: 'sample-2',
+            title: 'Solo Warriors Battle',
+            type: 'Solo',
+            prize: '₹15,000',
+            entry_fee: 50,
+            max_players: 100,
+            current_players: 67,
+            start_time: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+            status: 'open',
+            map: 'Purgatory',
+            duration: '30 min',
+            thumbnail: '/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png',
+            custom_code: 'SOLO2024'
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-slide functionality
+  useEffect(() => {
+    if (tournaments.length <= 1) return;
     
-    return () => {
-      window.removeEventListener('tournamentUpdated', handleTournamentUpdate);
-    };
-  }, [loadTournaments]);
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => 
+        prevIndex === tournaments.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 4000);
 
-  if (tournaments.length === 0) {
+    return () => clearInterval(interval);
+  }, [tournaments.length]);
+
+  const nextSlide = () => {
+    setCurrentIndex((prevIndex) => 
+      prevIndex === tournaments.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prevIndex) => 
+      prevIndex === 0 ? tournaments.length - 1 : prevIndex - 1
+    );
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index);
+  };
+
+  if (loading) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 text-center">
-        <h2 className="text-3xl font-bold text-white mb-8">Featured Tournaments</h2>
-        <p className="text-gray-400">No tournaments available at the moment.</p>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-900/20 to-cyan-900/20 backdrop-blur-sm border border-purple-500/10">
+        <div className="h-64 md:h-80 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
+        </div>
       </div>
     );
   }
 
+  if (tournaments.length === 0) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-900/20 to-cyan-900/20 backdrop-blur-sm border border-purple-500/10">
+        <div className="h-64 md:h-80 flex items-center justify-center">
+          <div className="text-center">
+            <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <p className="text-gray-400 text-lg">No tournaments available</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const currentTournament = tournaments[currentIndex];
+
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
-      <h2 className="text-3xl font-bold text-white mb-8 text-center">Featured Tournaments</h2>
-      <Carousel className="w-full">
-        <CarouselContent>
-          {tournaments.map((tournament) => (
-            <CarouselItem key={tournament.id} className="md:basis-1/2 lg:basis-1/3">
-              <Card className="bg-black/30 backdrop-blur-md border border-purple-500/20 overflow-hidden">
-                <div className="relative h-48 overflow-hidden">
-                  <img 
-                    src={tournament.thumbnail || "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&h=400&fit=crop"} 
-                    alt={tournament.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-2 right-2">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      tournament.status === 'open' ? 'bg-green-500 text-white' :
-                      tournament.status === 'filling' ? 'bg-yellow-500 text-black' :
-                      'bg-purple-500 text-white'
-                    }`}>
-                      {tournament.status.toUpperCase()}
-                    </span>
-                  </div>
-                  {tournament.customCode && (
-                    <div className="absolute top-2 left-2">
-                      <span className="bg-black/70 backdrop-blur-sm text-cyan-400 px-2 py-1 rounded text-xs font-bold flex items-center">
-                        <Code className="w-3 h-3 mr-1" />
-                        {tournament.customCode}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-lg font-bold text-white mb-2">{tournament.title}</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-300">
-                      <span className="flex items-center">
-                        <Trophy className="w-4 h-4 mr-1 text-yellow-400" />
-                        {tournament.prize}
-                      </span>
-                      <span className="flex items-center">
-                        <Users className="w-4 h-4 mr-1 text-blue-400" />
-                        {tournament.players}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1 text-green-400" />
-                        {tournament.duration}
-                      </span>
-                      <span className="text-cyan-400 font-bold">{tournament.entryFee}</span>
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {tournament.map} • {new Date(tournament.startTime).toLocaleString()}
-                    </div>
-                  </div>
-                  <Link to="/tournaments" className="block mt-4">
-                    <Button className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
-                      Join Tournament
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        <CarouselPrevious className="text-white border-cyan-500 hover:bg-cyan-500" />
-        <CarouselNext className="text-white border-cyan-500 hover:bg-cyan-500" />
-      </Carousel>
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-900/20 to-cyan-900/20 backdrop-blur-sm border border-purple-500/10">
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center opacity-20"
+        style={{
+          backgroundImage: `url(${currentTournament.thumbnail || '/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png'})`
+        }}
+      />
+      
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
+      
+      {/* Content */}
+      <div className="relative z-10 p-6 md:p-8 h-64 md:h-80 flex flex-col justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="px-3 py-1 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 text-cyan-300 text-sm font-medium rounded-full border border-cyan-500/30">
+              {currentTournament.type}
+            </span>
+            <span className="px-3 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 text-sm font-medium rounded-full border border-green-500/30">
+              {currentTournament.status === 'open' ? 'Registration Open' : 'Started'}
+            </span>
+            {currentTournament.custom_code && (
+              <span className="px-3 py-1 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 text-sm font-medium rounded-full border border-yellow-500/30">
+                Code: {currentTournament.custom_code}
+              </span>
+            )}
+          </div>
+          
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-tight">
+            {currentTournament.title}
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="flex items-center text-green-400">
+              <Trophy className="w-4 h-4 mr-2" />
+              <span className="text-sm font-medium">{currentTournament.prize}</span>
+            </div>
+            <div className="flex items-center text-blue-400">
+              <Users className="w-4 h-4 mr-2" />
+              <span className="text-sm">{currentTournament.current_players}/{currentTournament.max_players}</span>
+            </div>
+            {currentTournament.map && (
+              <div className="flex items-center text-purple-400">
+                <MapPin className="w-4 h-4 mr-2" />
+                <span className="text-sm">{currentTournament.map}</span>
+              </div>
+            )}
+            {currentTournament.duration && (
+              <div className="flex items-center text-orange-400">
+                <Timer className="w-4 h-4 mr-2" />
+                <span className="text-sm">{currentTournament.duration}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center text-gray-300 mb-4">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span className="text-sm">
+              {new Date(currentTournament.start_time).toLocaleString('en-IN', {
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="text-left">
+            <p className="text-gray-400 text-sm">Entry Fee</p>
+            <p className="text-2xl font-bold text-white">₹{currentTournament.entry_fee}</p>
+          </div>
+          
+          <Link to="/tournaments">
+            <Button 
+              className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-medium px-6 py-3 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105"
+            >
+              Join Tournament
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Navigation Controls */}
+      {tournaments.length > 1 && (
+        <>
+          {/* Previous/Next Buttons */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 z-20"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          <button
+            onClick={nextSlide}
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all duration-300 z-20"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          {/* Dots Indicator */}
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-20">
+            {tournaments.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === currentIndex 
+                    ? 'bg-cyan-400 scale-110' 
+                    : 'bg-white/50 hover:bg-white/80'
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Image as ImageIcon, Code, Dice6 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const TournamentCreation = () => {
   const [formData, setFormData] = useState({
@@ -24,7 +26,9 @@ const TournamentCreation = () => {
     customCode: ''
   });
   const [thumbnailPreview, setThumbnailPreview] = useState('');
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user, isAdmin } = useAuth();
 
   const generateRandomCode = () => {
     const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -48,7 +52,7 @@ const TournamentCreation = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.title || !formData.type || !formData.prize) {
@@ -60,44 +64,94 @@ const TournamentCreation = () => {
       return;
     }
 
-    // Create new tournament
-    const newTournament = {
-      id: Date.now(),
-      ...formData,
-      players: `0/${formData.maxPlayers}`,
-      status: 'open',
-      createdAt: new Date().toISOString()
-    };
+    if (!isAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only admins can create tournaments",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // Save to localStorage
-    const existingTournaments = JSON.parse(localStorage.getItem('tournaments') || '[]');
-    const updatedTournaments = [...existingTournaments, newTournament];
-    localStorage.setItem('tournaments', JSON.stringify(updatedTournaments));
+    setLoading(true);
+    console.log('Creating tournament with data:', formData);
 
-    // Trigger a custom event to notify other components
-    window.dispatchEvent(new CustomEvent('tournamentUpdated'));
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .insert([
+          {
+            title: formData.title,
+            type: formData.type,
+            prize: formData.prize,
+            entry_fee: parseInt(formData.entryFee) || 0,
+            max_players: parseInt(formData.maxPlayers) || 0,
+            start_time: formData.startTime,
+            map: formData.map,
+            duration: formData.duration,
+            thumbnail: formData.thumbnail || '/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png',
+            custom_code: formData.customCode,
+            status: 'open',
+            current_players: 0
+          }
+        ])
+        .select();
 
-    toast({
-      title: "Tournament Created!",
-      description: `${formData.title} has been created successfully.`
-    });
+      if (error) {
+        console.error('Error creating tournament:', error);
+        toast({
+          title: "Tournament Creation Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        setLoading(false);
+        return;
+      }
 
-    // Reset form
-    setFormData({
-      title: '',
-      type: '',
-      prize: '',
-      maxPlayers: '',
-      startTime: '',
-      entryFee: '',
-      map: '',
-      duration: '',
-      description: '',
-      thumbnail: '',
-      customCode: ''
-    });
-    setThumbnailPreview('');
+      console.log('Tournament created successfully:', data);
+      toast({
+        title: "Tournament Created!",
+        description: `${formData.title} has been created successfully.`
+      });
+
+      // Reset form
+      setFormData({
+        title: '',
+        type: '',
+        prize: '',
+        maxPlayers: '',
+        startTime: '',
+        entryFee: '',
+        map: '',
+        duration: '',
+        description: '',
+        thumbnail: '',
+        customCode: ''
+      });
+      setThumbnailPreview('');
+      setLoading(false);
+
+    } catch (error) {
+      console.error('Tournament creation exception:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong creating the tournament",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
   };
+
+  if (!isAdmin) {
+    return (
+      <Card className="bg-black/30 border-red-500/20">
+        <CardContent className="p-8 text-center">
+          <h3 className="text-white text-xl mb-4">Access Denied</h3>
+          <p className="text-gray-300">Only administrators can create tournaments.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="bg-black/30 border-purple-500/20">
@@ -116,12 +170,13 @@ const TournamentCreation = () => {
                 placeholder="Enter tournament title"
                 className="bg-black/20 border-gray-600 text-white"
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="type" className="text-gray-300">Tournament Type *</Label>
-              <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+              <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)} disabled={loading}>
                 <SelectTrigger className="bg-black/20 border-gray-600 text-white">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -142,6 +197,7 @@ const TournamentCreation = () => {
                 placeholder="₹25,000"
                 className="bg-black/20 border-gray-600 text-white"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -154,6 +210,7 @@ const TournamentCreation = () => {
                 placeholder="64"
                 type="number"
                 className="bg-black/20 border-gray-600 text-white"
+                disabled={loading}
               />
             </div>
 
@@ -163,14 +220,16 @@ const TournamentCreation = () => {
                 id="entryFee"
                 value={formData.entryFee}
                 onChange={(e) => handleInputChange('entryFee', e.target.value)}
-                placeholder="₹100"
+                placeholder="100"
+                type="number"
                 className="bg-black/20 border-gray-600 text-white"
+                disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="map" className="text-gray-300">Map</Label>
-              <Select value={formData.map} onValueChange={(value) => handleInputChange('map', value)}>
+              <Select value={formData.map} onValueChange={(value) => handleInputChange('map', value)} disabled={loading}>
                 <SelectTrigger className="bg-black/20 border-gray-600 text-white">
                   <SelectValue placeholder="Select map" />
                 </SelectTrigger>
@@ -191,6 +250,7 @@ const TournamentCreation = () => {
                 onChange={(e) => handleInputChange('duration', e.target.value)}
                 placeholder="45 min"
                 className="bg-black/20 border-gray-600 text-white"
+                disabled={loading}
               />
             </div>
 
@@ -202,6 +262,7 @@ const TournamentCreation = () => {
                 value={formData.startTime}
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
                 className="bg-black/20 border-gray-600 text-white"
+                disabled={loading}
               />
             </div>
           </div>
@@ -218,16 +279,21 @@ const TournamentCreation = () => {
                 onChange={(e) => handleInputChange('customCode', e.target.value)}
                 placeholder="Enter custom code or generate random"
                 className="bg-black/20 border-gray-600 text-white flex-1"
+                disabled={loading}
               />
               <Button
                 type="button"
                 onClick={generateRandomCode}
+                disabled={loading}
                 className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
               >
                 <Dice6 className="w-4 h-4 mr-1" />
                 Generate
               </Button>
             </div>
+            {formData.customCode && (
+              <p className="text-sm text-green-400">Tournament Code: <span className="font-mono font-bold">{formData.customCode}</span></p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -238,6 +304,7 @@ const TournamentCreation = () => {
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Tournament description..."
               className="bg-black/20 border-gray-600 text-white min-h-[100px]"
+              disabled={loading}
             />
           </div>
 
@@ -251,10 +318,12 @@ const TournamentCreation = () => {
                   accept="image/*"
                   onChange={handleThumbnailUpload}
                   className="absolute inset-0 opacity-0 cursor-pointer"
+                  disabled={loading}
                 />
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={loading}
                   className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
                 >
                   <Upload className="w-4 h-4 mr-2" />
@@ -272,6 +341,7 @@ const TournamentCreation = () => {
                     type="button"
                     size="sm"
                     variant="destructive"
+                    disabled={loading}
                     className="absolute -top-2 -right-2 w-6 h-6 p-0"
                     onClick={() => {
                       setThumbnailPreview('');
@@ -287,9 +357,10 @@ const TournamentCreation = () => {
 
           <Button
             type="submit"
+            disabled={loading}
             className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
           >
-            Create Tournament
+            {loading ? 'Creating Tournament...' : 'Create Tournament'}
           </Button>
         </form>
       </CardContent>

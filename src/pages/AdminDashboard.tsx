@@ -1,12 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard, ArrowDownCircle, ArrowUpCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Navigate } from 'react-router-dom';
 import MatchResultsManagement from '@/components/MatchResultsManagement';
 import TournamentCreation from '@/components/TournamentCreation';
+import TournamentManagement from '@/components/TournamentManagement';
 
 interface Transaction {
   id: string;
@@ -22,15 +25,59 @@ interface Transaction {
   upiId?: string;
 }
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  is_admin: boolean;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [userActivity, setUserActivity] = useState([]);
-  const [activeTab, setActiveTab] = useState('transactions');
+  const [activeTab, setActiveTab] = useState('users');
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { isAdmin, user } = useAuth();
+
+  // Redirect if not admin
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   useEffect(() => {
     loadAdminData();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load users",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setUsers(data || []);
+      console.log('Users loaded:', data);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadAdminData = () => {
     try {
@@ -146,7 +193,14 @@ const AdminDashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-black/30 border border-purple-500/20">
+          <TabsList className="grid w-full grid-cols-6 bg-black/30 border border-purple-500/20">
+            <TabsTrigger 
+              value="users" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Users
+            </TabsTrigger>
             <TabsTrigger 
               value="transactions" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
@@ -155,11 +209,18 @@ const AdminDashboard = () => {
               Transactions
             </TabsTrigger>
             <TabsTrigger 
-              value="tournaments" 
+              value="create-tournament" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Create Tournament
+              Create
+            </TabsTrigger>
+            <TabsTrigger 
+              value="manage-tournaments" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+            >
+              <Trophy className="w-4 h-4 mr-2" />
+              Manage
             </TabsTrigger>
             <TabsTrigger 
               value="matches" 
@@ -167,13 +228,6 @@ const AdminDashboard = () => {
             >
               <Trophy className="w-4 h-4 mr-2" />
               Matches
-            </TabsTrigger>
-            <TabsTrigger 
-              value="users" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Users
             </TabsTrigger>
             <TabsTrigger 
               value="stats" 
@@ -184,8 +238,56 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="users" className="space-y-6 mt-6">
+            <Card className="bg-black/30 border-blue-500/20 backdrop-blur-md">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-blue-400" />
+                  Registered Users ({users.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {loading ? (
+                    <div className="space-y-3">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-16 bg-black/20 rounded-lg animate-pulse" />
+                      ))}
+                    </div>
+                  ) : users.length > 0 ? (
+                    users.map((userProfile) => (
+                      <div key={userProfile.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-blue-500/20">
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-white font-semibold">{userProfile.name}</h3>
+                            {userProfile.is_admin && (
+                              <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full border border-red-500/30">
+                                Admin
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-300 text-sm mb-1">Email: {userProfile.email}</p>
+                          {userProfile.phone && (
+                            <p className="text-gray-300 text-sm mb-1">Phone: {userProfile.phone}</p>
+                          )}
+                          <p className="text-gray-500 text-xs">
+                            Joined: {new Date(userProfile.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                      <p className="text-gray-400">No users found</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="transactions" className="space-y-6 mt-6">
-            {/* Pending Deposits */}
             <Card className="bg-black/30 border-green-500/20 backdrop-blur-md">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -245,7 +347,6 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Pending Withdrawals */}
             <Card className="bg-black/30 border-orange-500/20 backdrop-blur-md">
               <CardHeader>
                 <CardTitle className="text-white flex items-center">
@@ -299,44 +400,16 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="tournaments" className="space-y-6 mt-6">
+          <TabsContent value="create-tournament" className="space-y-6 mt-6">
             <TournamentCreation />
+          </TabsContent>
+
+          <TabsContent value="manage-tournaments" className="space-y-6 mt-6">
+            <TournamentManagement />
           </TabsContent>
 
           <TabsContent value="matches" className="space-y-6 mt-6">
             <MatchResultsManagement />
-          </TabsContent>
-
-          <TabsContent value="users" className="space-y-6 mt-6">
-            <Card className="bg-black/30 border-purple-500/20">
-              <CardHeader>
-                <CardTitle className="text-white">Recent User Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {userActivity.slice().reverse().map((activity: any, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-black/20 rounded-lg">
-                      <div>
-                        <p className="text-white font-medium">{activity.userName}</p>
-                        <p className="text-gray-400 text-sm">{activity.action}: {activity.tournamentName}</p>
-                        <p className="text-gray-500 text-xs">{new Date(activity.timestamp).toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        {activity.tournamentDetails && (
-                          <div className="text-sm">
-                            <p className="text-cyan-400">UID: {activity.tournamentDetails.uid}</p>
-                            <p className="text-green-400">Fee: ₹{activity.tournamentDetails.entryFee}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {userActivity.length === 0 && (
-                    <p className="text-gray-400 text-center py-4">No user activity yet</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="stats" className="space-y-6 mt-6">
@@ -349,7 +422,7 @@ const AdminDashboard = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-cyan-400">{userActivity.length}</p>
+                  <p className="text-3xl font-bold text-cyan-400">{users.length}</p>
                 </CardContent>
               </Card>
 
