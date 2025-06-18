@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trophy, User, Bell, History, Wallet, Settings, LogOut, Home } from 'lucide-react';
+import { Trophy, User, Bell, History, Wallet as WalletIcon, Settings, LogOut, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -117,7 +117,7 @@ const Dashboard = () => {
 
           <Card className="bg-black/40 border-yellow-500/30 backdrop-blur-md">
             <CardContent className="p-6 text-center">
-              <Wallet className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
+              <WalletIcon className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
               <div className="text-2xl font-bold text-yellow-400">₹0</div>
               <div className="text-gray-300 text-sm">Wallet Balance</div>
             </CardContent>
@@ -140,7 +140,7 @@ const Dashboard = () => {
               <span className="hidden sm:inline">History</span>
             </TabsTrigger>
             <TabsTrigger value="wallet" className="flex items-center space-x-2 data-[state=active]:bg-yellow-500/20 data-[state=active]:text-yellow-400">
-              <Wallet className="w-4 h-4" />
+              <WalletIcon className="w-4 h-4" />
               <span className="hidden sm:inline">Wallet</span>
             </TabsTrigger>
             <TabsTrigger value="tournaments" className="flex items-center space-x-2 data-[state=active]:bg-orange-500/20 data-[state=active]:text-orange-400">
