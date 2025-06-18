@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trophy, Clock, Users, MapPin, Upload, Award, Calendar } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,11 +18,53 @@ const MatchHistory = () => {
   }, [user]);
 
   const loadUserMatches = () => {
-    const allMatches = JSON.parse(localStorage.getItem('matchHistory') || '[]');
-    // Filter matches for current user
-    const userMatches = allMatches.filter(match => match.userId === user?.id);
-    console.log('User matches loaded:', userMatches);
-    setMatchHistory(userMatches);
+    try {
+      const allMatches = JSON.parse(localStorage.getItem('matchHistory') || '[]');
+      // Filter matches for current user
+      const userMatches = allMatches.filter(match => match.userId === user?.id);
+      console.log('User matches loaded:', userMatches);
+      setMatchHistory(userMatches);
+
+      // Create notifications for match results
+      userMatches.forEach(match => {
+        if (match.result && match.result !== 'pending') {
+          createMatchResultNotification(match);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading user matches:', error);
+    }
+  };
+
+  const createMatchResultNotification = (match) => {
+    try {
+      const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      
+      // Check if notification already exists for this match result
+      const notificationExists = existingNotifications.some(notif => 
+        notif.matchId === match.id && notif.type === 'match_result'
+      );
+
+      if (!notificationExists) {
+        const notification = {
+          id: `match_result_${match.id}_${Date.now()}`,
+          userId: user?.id,
+          type: match.result === 'winner' ? 'success' : 'info',
+          title: `Tournament Result: ${match.tournament.title}`,
+          message: match.result === 'winner' 
+            ? `🎉 Congratulations! You won the tournament and earned ${match.tournament.prize}!`
+            : `Tournament completed. Better luck next time! Keep practicing for future tournaments.`,
+          read: false,
+          createdAt: new Date().toISOString(),
+          matchId: match.id
+        };
+
+        const updatedNotifications = [...existingNotifications, notification];
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    } catch (error) {
+      console.error('Error creating match result notification:', error);
+    }
   };
 
   const getResultBadge = (result) => {
@@ -181,7 +222,6 @@ const MatchHistory = () => {
               )}
             </div>
 
-            {/* Screenshot Section */}
             <div className="mt-4">
               {match.resultScreenshot ? (
                 <div>

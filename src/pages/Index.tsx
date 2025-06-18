@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import TournamentSlider from '@/components/TournamentSlider';
 import ImageSlider from '@/components/ImageSlider';
+import LoginModal from '@/components/LoginModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
@@ -16,7 +17,8 @@ const Index = () => {
     prizeDistributed: 0,
     liveMatches: 0
   });
-  const { isAuthenticated } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const { isAuthenticated, user, profile } = useAuth();
 
   // Load tournaments and calculate stats
   useEffect(() => {
@@ -83,6 +85,11 @@ const Index = () => {
     });
   }, []);
 
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    // Don't redirect automatically, let user stay on current page
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation */}
@@ -110,18 +117,25 @@ const Index = () => {
             </div>
             <div className="flex items-center space-x-3">
               {isAuthenticated ? (
-                <Link to="/dashboard">
-                  <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
-                    Dashboard
-                  </Button>
-                </Link>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link to="/login">
+                <div className="flex items-center space-x-3">
+                  <span className="text-gray-300 text-sm">
+                    Welcome, {profile?.name || user?.email?.split('@')[0] || 'User'}
+                  </span>
+                  <Link to="/dashboard">
                     <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
-                      Login
+                      Dashboard
                     </Button>
                   </Link>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
+                    onClick={() => setShowLoginModal(true)}
+                  >
+                    Login
+                  </Button>
                   <Link to="/register">
                     <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
                       Sign Up
@@ -186,7 +200,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Tournament Slider */}
       <div className="py-16 bg-gradient-to-r from-cyan-500/5 to-purple-500/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -208,7 +221,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Live Stats Section */}
       <div className="py-16 bg-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -248,7 +260,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Features Section */}
       <div className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -321,7 +332,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Call to Action */}
       <div className="py-20 bg-gradient-to-r from-cyan-500/10 to-purple-500/10">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-white mb-6">
@@ -347,7 +357,6 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="bg-black/50 border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
@@ -368,6 +377,13 @@ const Index = () => {
           </div>
         </div>
       </footer>
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 };
