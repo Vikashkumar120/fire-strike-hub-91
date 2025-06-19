@@ -9,7 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const UserProfile = () => {
-  const { profile, updateProfile, refreshProfile } = useAuth();
+  const { profile, updateProfile, refreshProfile, user, loading } = useAuth();
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -83,10 +83,28 @@ const UserProfile = () => {
     });
   };
 
+  // Show loading state
+  if (loading || !user) {
+    return (
+      <div className="text-center py-12">
+        <User className="w-16 h-16 text-cyan-400 mx-auto mb-4 animate-spin" />
+        <p className="text-gray-400">Loading profile...</p>
+      </div>
+    );
+  }
+
+  // Show profile not found state (shouldn't happen normally)
   if (!profile) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Loading profile...</p>
+        <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-400">Profile not found</p>
+        <Button 
+          onClick={refreshProfile}
+          className="mt-4 bg-cyan-500 hover:bg-cyan-600"
+        >
+          Retry Loading Profile
+        </Button>
       </div>
     );
   }

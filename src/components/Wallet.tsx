@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wallet as WalletIcon, Plus, Minus, History, CreditCard, Smartphone } from 'lucide-react';
+import { Wallet as WalletIcon, Plus, Minus, History, CreditCard, Smartphone, Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,16 +12,19 @@ import { supabase } from '@/integrations/supabase/client';
 interface WalletData {
   id: string;
   balance: number;
+  coins: number;
   user_id: string;
   created_at: string;
   updated_at: string;
+  last_daily_bonus?: string;
 }
 
 interface Transaction {
   id: string;
-  type: string; // Changed from union type to string
+  type: string;
   amount: number;
-  status: string; // Changed from union type to string
+  coins?: number;
+  status: string;
   description: string;
   created_at: string;
   user_id?: string;
@@ -41,6 +44,11 @@ const Wallet = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [amount, setAmount] = useState('');
+  const [canClaimDaily, setCanClaimDaily] = useState(false);
+
+  // Convert coins to rupees (500 coins = 5 rupees)
+  const coinsToRupees = (coins: number) => (coins / 100).toFixed(2);
+  const rupeesToCoins = (rupees: number) => rupees * 100;
 
   useEffect(() => {
     if (user) {
@@ -55,7 +63,6 @@ const Wallet = () => {
     try {
       console.log('Loading wallet data for user:', user.id);
       
-      // First try to get existing wallet
       let { data: walletData, error } = await supabase
         .from('wallets')
         .select('*')
@@ -63,13 +70,13 @@ const Wallet = () => {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // Wallet doesn't exist, create one
-        console.log('Wallet not found, creating new wallet');
+        console.log('Wallet not found, creating new wallet with welcome bonus');
         const { data: newWallet, error: createError } = await supabase
           .from('wallets')
           .insert({
             user_id: user.id,
-            balance: 100 // Starting bonus
+            balance: 5, // ₹5 welcome bonus
+            coins: 520 // 20 welcome coins + 500 coins (₹5)
           })
           .select()
           .single();
@@ -79,7 +86,25 @@ const Wallet = () => {
           throw createError;
         }
         
+        // Add welcome transaction
+        await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: user.id,
+            wallet_id: newWallet.id,
+            type: 'welcome_bonus',
+            amount: 5,
+            coins: 520,
+            status: 'completed',
+            description: 'Welcome bonus: ₹5 + 20 coins'
+          });
+        
         walletData = newWallet;
+        
+        toast({
+          title: "Welcome! 🎉",
+          description: "You got ₹5 + 20 coins as welcome bonus!"
+        });
       } else if (error) {
         console.error('Error fetching wallet:', error);
         throw error;
@@ -87,38 +112,87 @@ const Wallet = () => {
 
       console.log('Wallet data loaded:', walletData);
       setWallet(walletData);
+      
+      // Check if daily bonus can be claimed
+      checkDailyBonus(walletData);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error in loadWalletData:', error);
       toast({
         title: "Wallet Error",
-        description: "Could not load wallet data. Creating new wallet...",
+        description: "Could not load wallet data",
         variant: "destructive"
       });
-      
-      // Try to create wallet as fallback
-      try {
-        const { data: newWallet, error: createError } = await supabase
-          .from('wallets')
-          .insert({
-            user_id: user.id,
-            balance: 100
-          })
-          .select()
-          .single();
-
-        if (!createError && newWallet) {
-          setWallet(newWallet);
-          toast({
-            title: "Wallet Created",
-            description: "New wallet created with ₹100 bonus!"
-          });
-        }
-      } catch (createError) {
-        console.error('Failed to create wallet:', createError);
-      }
-      
       setLoading(false);
+    }
+  };
+
+  const checkDailyBonus = (walletData: WalletData) => {
+    if (!walletData.last_daily_bonus) {
+      setCanClaimDaily(true);
+      return;
+    }
+    
+    const lastBonus = new Date(walletData.last_daily_bonus);
+    const today = new Date();
+    const diffTime = today.getTime() - lastBonus.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    setCanClaimDaily(diffDays >= 1);
+  };
+
+  const claimDailyBonus = async () => {
+    if (!wallet || !canClaimDaily) return;
+    
+    setActionLoading(true);
+    
+    try {
+      const bonusCoins = 30;
+      const newCoins = (wallet.coins || 0) + bonusCoins;
+      
+      // Update wallet
+      const { error: updateError } = await supabase
+        .from('wallets')
+        .update({ 
+          coins: newCoins,
+          last_daily_bonus: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', wallet.id);
+
+      if (updateError) throw updateError;
+
+      // Add transaction
+      await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: user!.id,
+          wallet_id: wallet.id,
+          type: 'daily_bonus',
+          amount: 0,
+          coins: bonusCoins,
+          status: 'completed',
+          description: `Daily bonus: ${bonusCoins} coins`
+        });
+
+      setWallet({ ...wallet, coins: newCoins, last_daily_bonus: new Date().toISOString() });
+      setCanClaimDaily(false);
+      await loadTransactions();
+      
+      toast({
+        title: "Daily Bonus Claimed! 🎁",
+        description: `You got ${bonusCoins} coins!`
+      });
+    } catch (error) {
+      console.error('Daily bonus error:', error);
+      toast({
+        title: "Bonus Failed",
+        description: "Could not claim daily bonus",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -138,11 +212,11 @@ const Wallet = () => {
         return;
       }
 
-      // Cast the data to our Transaction type
       const transactionData = (data || []).map(item => ({
         id: item.id,
         type: item.type,
         amount: item.amount,
+        coins: item.coins || 0,
         status: item.status || 'pending',
         description: item.description || '',
         created_at: item.created_at,
@@ -178,20 +252,22 @@ const Wallet = () => {
     
     try {
       // Create transaction record
-      const { data: transaction, error: txnError } = await supabase
+      const { error: txnError } = await supabase
         .from('wallet_transactions')
         .insert({
           user_id: user!.id,
           wallet_id: wallet.id,
           type: 'deposit',
           amount: depositAmount,
+          coins: 0,
           status: 'completed',
           description: `Deposit of ₹${depositAmount}`
-        })
-        .select()
-        .single();
+        });
 
-      if (txnError) throw txnError;
+      if (txnError) {
+        console.error('Transaction error:', txnError);
+        throw txnError;
+      }
 
       // Update wallet balance
       const newBalance = wallet.balance + depositAmount;
@@ -203,7 +279,10 @@ const Wallet = () => {
         })
         .eq('id', wallet.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Wallet update error:', updateError);
+        throw updateError;
+      }
 
       setWallet({ ...wallet, balance: newBalance });
       setAmount('');
@@ -258,11 +337,15 @@ const Wallet = () => {
           wallet_id: wallet.id,
           type: 'withdraw',
           amount: withdrawAmount,
+          coins: 0,
           status: 'pending',
           description: `Withdrawal of ₹${withdrawAmount}`
         });
 
-      if (txnError) throw txnError;
+      if (txnError) {
+        console.error('Transaction error:', txnError);
+        throw txnError;
+      }
 
       // Update wallet balance
       const newBalance = wallet.balance - withdrawAmount;
@@ -274,7 +357,10 @@ const Wallet = () => {
         })
         .eq('id', wallet.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Wallet update error:', updateError);
+        throw updateError;
+      }
 
       setWallet({ ...wallet, balance: newBalance });
       setAmount('');
@@ -289,6 +375,69 @@ const Wallet = () => {
       toast({
         title: "Withdrawal Failed",
         description: "Could not process withdrawal. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const convertCoinsToMoney = async () => {
+    if (!wallet || wallet.coins < 500) {
+      toast({
+        title: "Insufficient Coins",
+        description: "You need at least 500 coins to convert to money",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setActionLoading(true);
+    
+    try {
+      const coinsToConvert = Math.floor(wallet.coins / 100) * 100; // Convert in multiples of 100
+      const rupeesToAdd = coinsToConvert / 100;
+      
+      const newBalance = wallet.balance + rupeesToAdd;
+      const newCoins = wallet.coins - coinsToConvert;
+
+      // Update wallet
+      const { error: updateError } = await supabase
+        .from('wallets')
+        .update({ 
+          balance: newBalance,
+          coins: newCoins,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', wallet.id);
+
+      if (updateError) throw updateError;
+
+      // Add transaction
+      await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: user!.id,
+          wallet_id: wallet.id,
+          type: 'coin_conversion',
+          amount: rupeesToAdd,
+          coins: -coinsToConvert,
+          status: 'completed',
+          description: `Converted ${coinsToConvert} coins to ₹${rupeesToAdd}`
+        });
+
+      setWallet({ ...wallet, balance: newBalance, coins: newCoins });
+      await loadTransactions();
+      
+      toast({
+        title: "Conversion Successful",
+        description: `${coinsToConvert} coins converted to ₹${rupeesToAdd}`
+      });
+    } catch (error) {
+      console.error('Conversion error:', error);
+      toast({
+        title: "Conversion Failed",
+        description: "Could not convert coins",
         variant: "destructive"
       });
     } finally {
@@ -318,7 +467,11 @@ const Wallet = () => {
       case 'tournament_payment':
         return <CreditCard className="w-4 h-4 text-blue-400" />;
       case 'prize':
-        return <Plus className="w-4 h-4 text-yellow-400" />;
+      case 'welcome_bonus':
+      case 'daily_bonus':
+        return <Gift className="w-4 h-4 text-yellow-400" />;
+      case 'coin_conversion':
+        return <WalletIcon className="w-4 h-4 text-purple-400" />;
       default:
         return <History className="w-4 h-4 text-gray-400" />;
     }
@@ -340,16 +493,52 @@ const Wallet = () => {
         <CardHeader>
           <CardTitle className="text-white flex items-center">
             <WalletIcon className="w-6 h-6 mr-2 text-cyan-400" />
-            Wallet Balance
+            Wallet & Coins
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center mb-6">
-            <div className="text-4xl font-bold text-cyan-400 mb-2">
-              ₹{wallet?.balance?.toFixed(2) || '0.00'}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-cyan-400 mb-2">
+                ₹{wallet?.balance?.toFixed(2) || '0.00'}
+              </div>
+              <p className="text-gray-300">Wallet Balance</p>
             </div>
-            <p className="text-gray-300">Available Balance</p>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">
+                {wallet?.coins || 0}
+              </div>
+              <p className="text-gray-300">Coins (500 coins = ₹5)</p>
+            </div>
           </div>
+
+          {/* Daily Bonus */}
+          {canClaimDaily && (
+            <div className="mb-4">
+              <Button
+                onClick={claimDailyBonus}
+                disabled={actionLoading}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700"
+              >
+                <Gift className="w-4 h-4 mr-2" />
+                {actionLoading ? 'Claiming...' : 'Claim Daily Bonus (30 Coins)'}
+              </Button>
+            </div>
+          )}
+
+          {/* Convert Coins */}
+          {wallet && wallet.coins >= 500 && (
+            <div className="mb-4">
+              <Button
+                onClick={convertCoinsToMoney}
+                disabled={actionLoading}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                <WalletIcon className="w-4 h-4 mr-2" />
+                {actionLoading ? 'Converting...' : `Convert ${Math.floor(wallet.coins / 100) * 100} Coins to ₹${Math.floor(wallet.coins / 100)}`}
+              </Button>
+            </div>
+          )}
 
           <Tabs defaultValue="deposit" className="w-full">
             <TabsList className="grid w-full grid-cols-2 bg-black/30">
@@ -441,14 +630,23 @@ const Wallet = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`font-medium ${
-                      transaction.type === 'deposit' || transaction.type === 'prize' 
-                        ? 'text-green-400' 
-                        : 'text-red-400'
-                    }`}>
-                      {transaction.type === 'deposit' || transaction.type === 'prize' ? '+' : '-'}
-                      ₹{transaction.amount}
-                    </p>
+                    {transaction.amount > 0 && (
+                      <p className={`font-medium ${
+                        transaction.type === 'deposit' || transaction.type === 'prize' || transaction.type === 'welcome_bonus' || transaction.type === 'coin_conversion'
+                          ? 'text-green-400' 
+                          : 'text-red-400'
+                      }`}>
+                        {transaction.type === 'deposit' || transaction.type === 'prize' || transaction.type === 'welcome_bonus' || transaction.type === 'coin_conversion' ? '+' : '-'}
+                        ₹{transaction.amount}
+                      </p>
+                    )}
+                    {transaction.coins && transaction.coins !== 0 && (
+                      <p className={`font-medium text-sm ${
+                        transaction.coins > 0 ? 'text-yellow-400' : 'text-orange-400'
+                      }`}>
+                        {transaction.coins > 0 ? '+' : ''}{transaction.coins} coins
+                      </p>
+                    )}
                     {getStatusBadge(transaction.status)}
                   </div>
                 </div>

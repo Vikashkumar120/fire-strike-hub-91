@@ -199,19 +199,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     
     try {
-      // Special handling for admin login
+      // Check for admin credentials first
       if (email === 'admin@firetourneys.com' && password === 'admin123') {
-        // Try to find existing admin user
-        const { data: adminProfile } = await supabase
+        console.log('Admin login attempt detected');
+        
+        // Check if admin profile exists in database
+        const { data: adminProfile, error: adminError } = await supabase
           .from('profiles')
           .select('*')
           .eq('email', email)
           .eq('is_admin', true)
-          .single();
+          .maybeSingle();
           
+        if (adminError) {
+          console.error('Admin profile check error:', adminError);
+        }
+        
         if (adminProfile) {
-          // Create a mock session for admin
-          const mockUser: User = {
+          console.log('Admin profile found:', adminProfile);
+          
+          // Create a valid user object for admin
+          const adminUser: User = {
             id: adminProfile.id,
             email: adminProfile.email,
             user_metadata: { name: adminProfile.name },
@@ -219,25 +227,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             aud: 'authenticated',
             created_at: adminProfile.created_at,
             role: 'authenticated',
-            updated_at: adminProfile.updated_at
+            updated_at: adminProfile.updated_at || adminProfile.created_at
           };
           
-          setUser(mockUser);
-          setProfile(adminProfile);
-          setSession({
-            user: mockUser,
-            access_token: 'admin-token',
-            refresh_token: 'admin-refresh',
+          // Create a valid session for admin
+          const adminSession: Session = {
+            user: adminUser,
+            access_token: 'admin-mock-token',
+            refresh_token: 'admin-mock-refresh',
             expires_in: 3600,
-            expires_at: Date.now() + 3600000,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
             token_type: 'bearer'
-          });
+          };
+          
+          setUser(adminUser);
+          setProfile(adminProfile);
+          setSession(adminSession);
           
           setLoading(false);
+          console.log('Admin login successful');
           return { error: null };
+        } else {
+          console.log('Admin profile not found in database');
+          setLoading(false);
+          return { error: { message: 'Admin account not found. Please contact support.' } };
         }
       }
       
+      // Regular user login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -291,13 +308,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     
     try {
-      await supabase.auth.signOut();
+      // Only call supabase signOut for real users, not admin mock session
+      if (user?.email !== 'admin@firetourneys.com') {
+        await supabase.auth.signOut();
+      }
+      
       setUser(null);
       setProfile(null);
       setSession(null);
       setLoading(false);
     } catch (error) {
       console.error('Signout error:', error);
+      setUser(null);
+      setProfile(null);
+      setSession(null);
       setLoading(false);
     }
   };
