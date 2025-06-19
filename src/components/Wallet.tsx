@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Wallet as WalletIcon, Plus, Minus, History, CreditCard, Smartphone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +19,18 @@ interface WalletData {
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'withdraw' | 'tournament_payment' | 'prize';
+  type: string; // Changed from union type to string
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  status: string; // Changed from union type to string
   description: string;
   created_at: string;
+  user_id?: string;
+  wallet_id?: string;
+  transaction_id?: string;
+  screenshot?: string;
+  upi_id?: string;
+  admin_notes?: string;
+  updated_at?: string;
 }
 
 const Wallet = () => {
@@ -132,7 +138,24 @@ const Wallet = () => {
         return;
       }
 
-      setTransactions(data || []);
+      // Cast the data to our Transaction type
+      const transactionData = (data || []).map(item => ({
+        id: item.id,
+        type: item.type,
+        amount: item.amount,
+        status: item.status || 'pending',
+        description: item.description || '',
+        created_at: item.created_at,
+        user_id: item.user_id,
+        wallet_id: item.wallet_id,
+        transaction_id: item.transaction_id,
+        screenshot: item.screenshot,
+        upi_id: item.upi_id,
+        admin_notes: item.admin_notes,
+        updated_at: item.updated_at
+      })) as Transaction[];
+
+      setTransactions(transactionData);
     } catch (error) {
       console.error('Error in loadTransactions:', error);
     }
