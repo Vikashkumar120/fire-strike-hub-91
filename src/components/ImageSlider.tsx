@@ -9,24 +9,28 @@ interface SlideData {
   description: string;
 }
 
-const ImageSlider = () => {
+interface ImageSliderProps {
+  images?: string[];
+}
+
+const ImageSlider = ({ images }: ImageSliderProps) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slides] = useState<SlideData[]>([
     {
       id: 1,
-      image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=600&fit=crop",
+      image: images?.[0] || "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=600&fit=crop",
       title: "Epic Free Fire Tournaments",
       description: "Join the most exciting Free Fire battles and win amazing prizes!"
     },
     {
       id: 2,
-      image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&h=600&fit=crop",
+      image: images?.[1] || "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&h=600&fit=crop",
       title: "Professional Gaming Arena",
       description: "Compete with the best players in our premium gaming environment."
     },
     {
       id: 3,
-      image: "https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=1200&h=600&fit=crop",
+      image: images?.[2] || "https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=1200&h=600&fit=crop",
       title: "Win Big Prizes",
       description: "Cash prizes, exclusive rewards, and glory await the champions!"
     }
