@@ -183,6 +183,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           amount: number
+          coins: number | null
           created_at: string | null
           description: string | null
           id: string
@@ -198,6 +199,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           amount: number
+          coins?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -213,6 +215,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           amount?: number
+          coins?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -238,6 +241,7 @@ export type Database = {
       wallets: {
         Row: {
           balance: number | null
+          coins: number | null
           created_at: string | null
           id: string
           updated_at: string | null
@@ -245,6 +249,7 @@ export type Database = {
         }
         Insert: {
           balance?: number | null
+          coins?: number | null
           created_at?: string | null
           id?: string
           updated_at?: string | null
@@ -252,6 +257,7 @@ export type Database = {
         }
         Update: {
           balance?: number | null
+          coins?: number | null
           created_at?: string | null
           id?: string
           updated_at?: string | null

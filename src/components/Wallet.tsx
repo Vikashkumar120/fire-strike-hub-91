@@ -111,10 +111,22 @@ const Wallet = () => {
       }
 
       console.log('Wallet data loaded:', walletData);
-      setWallet(walletData);
+      
+      // Ensure walletData has all required fields with defaults
+      const completeWalletData: WalletData = {
+        id: walletData.id,
+        balance: walletData.balance || 0,
+        coins: walletData.coins || 0,
+        user_id: walletData.user_id,
+        created_at: walletData.created_at,
+        updated_at: walletData.updated_at,
+        last_daily_bonus: walletData.last_daily_bonus
+      };
+      
+      setWallet(completeWalletData);
       
       // Check if daily bonus can be claimed
-      checkDailyBonus(walletData);
+      checkDailyBonus(completeWalletData);
       
       setLoading(false);
     } catch (error) {
