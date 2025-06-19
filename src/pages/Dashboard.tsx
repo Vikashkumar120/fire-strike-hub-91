@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Trophy, User, Bell, History, Wallet as WalletIcon, LogOut, Home, Menu, X } from 'lucide-react';
+import { Trophy, User, Bell, History, Wallet as WalletIcon, LogOut, Home, Menu, X, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 
 const Dashboard = () => {
-  const { user, profile, signOut, isAuthenticated } = useAuth();
+  const { user, profile, signOut, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -63,13 +63,28 @@ const Dashboard = () => {
             
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4">
-              <span className="text-gray-300">Welcome, {userDisplayName}</span>
+              <span className="text-gray-300">
+                Welcome, {userDisplayName}
+                {isAdmin && (
+                  <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                    👑 Admin
+                  </span>
+                )}
+              </span>
               <Link to="/">
                 <Button variant="outline" className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
                   <Home className="w-4 h-4 mr-2" />
                   Home
                 </Button>
               </Link>
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="outline" className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-black">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Admin Panel
+                  </Button>
+                </Link>
+              )}
               <Button 
                 variant="outline" 
                 className="border-red-500 text-red-400 hover:bg-red-500 hover:text-black"
@@ -97,13 +112,28 @@ const Dashboard = () => {
           {isMobileMenuOpen && (
             <div className="md:hidden py-4 border-t border-gray-700">
               <div className="flex flex-col space-y-3">
-                <span className="text-gray-300 px-2">Welcome, {userDisplayName}</span>
+                <span className="text-gray-300 px-2">
+                  Welcome, {userDisplayName}
+                  {isAdmin && (
+                    <span className="ml-2 px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                      👑 Admin
+                    </span>
+                  )}
+                </span>
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
                   <Button variant="outline" className="w-full border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black">
                     <Home className="w-4 h-4 mr-2" />
                     Home
                   </Button>
                 </Link>
+                {isAdmin && (
+                  <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Button variant="outline" className="w-full border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-black">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Admin Panel
+                    </Button>
+                  </Link>
+                )}
                 <Button 
                   variant="outline" 
                   className="w-full border-red-500 text-red-400 hover:bg-red-500 hover:text-black"
@@ -126,8 +156,13 @@ const Dashboard = () => {
         <div className="mb-8">
           <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
             Welcome back, {userDisplayName}!
+            {isAdmin && (
+              <span className="block text-lg md:text-xl text-purple-400 mt-2">
+                👑 Administrator Dashboard
+              </span>
+            )}
           </h1>
-          <p className="text-gray-300 text-sm md:text-lg">
+          <p className="text-gray-300 text-sm md:text-lg px-0">
             Manage your tournaments, view your progress, and stay updated with notifications.
           </p>
         </div>
