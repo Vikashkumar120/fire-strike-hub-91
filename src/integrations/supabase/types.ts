@@ -244,6 +244,7 @@ export type Database = {
           coins: number | null
           created_at: string | null
           id: string
+          last_daily_bonus: string | null
           updated_at: string | null
           user_id: string | null
         }
@@ -252,6 +253,7 @@ export type Database = {
           coins?: number | null
           created_at?: string | null
           id?: string
+          last_daily_bonus?: string | null
           updated_at?: string | null
           user_id?: string | null
         }
@@ -260,6 +262,7 @@ export type Database = {
           coins?: number | null
           created_at?: string | null
           id?: string
+          last_daily_bonus?: string | null
           updated_at?: string | null
           user_id?: string | null
         }

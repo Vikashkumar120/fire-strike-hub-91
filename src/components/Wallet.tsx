@@ -120,7 +120,7 @@ const Wallet = () => {
         user_id: walletData.user_id,
         created_at: walletData.created_at,
         updated_at: walletData.updated_at,
-        last_daily_bonus: walletData.last_daily_bonus
+        last_daily_bonus: walletData.last_daily_bonus || undefined
       };
       
       setWallet(completeWalletData);
@@ -148,9 +148,15 @@ const Wallet = () => {
     
     const lastBonus = new Date(walletData.last_daily_bonus);
     const today = new Date();
-    const diffTime = today.getTime() - lastBonus.getTime();
+    
+    // Reset to start of day to properly compare dates
+    const lastBonusDate = new Date(lastBonus.getFullYear(), lastBonus.getMonth(), lastBonus.getDate());
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    const diffTime = todayDate.getTime() - lastBonusDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
+    console.log('Daily bonus check:', { lastBonusDate, todayDate, diffDays });
     setCanClaimDaily(diffDays >= 1);
   };
 
@@ -162,14 +168,15 @@ const Wallet = () => {
     try {
       const bonusCoins = 30;
       const newCoins = (wallet.coins || 0) + bonusCoins;
+      const now = new Date().toISOString();
       
       // Update wallet
       const { error: updateError } = await supabase
         .from('wallets')
         .update({ 
           coins: newCoins,
-          last_daily_bonus: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          last_daily_bonus: now,
+          updated_at: now
         })
         .eq('id', wallet.id);
 
@@ -188,7 +195,7 @@ const Wallet = () => {
           description: `Daily bonus: ${bonusCoins} coins`
         });
 
-      setWallet({ ...wallet, coins: newCoins, last_daily_bonus: new Date().toISOString() });
+      setWallet({ ...wallet, coins: newCoins, last_daily_bonus: now });
       setCanClaimDaily(false);
       await loadTransactions();
       
