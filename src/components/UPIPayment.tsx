@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { QrCode, Copy, Check, ArrowLeft, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -26,12 +27,13 @@ const UPIPayment = ({ amount, description, onSuccess, onBack }: UPIPaymentProps)
   const merchantName = 'FireTourneys';
   const upiUrl = `upi://pay?pa=${upiId}&pn=${merchantName}&am=${amount}&cu=INR&tn=${description || 'Tournament Entry Fee'}`;
 
-  // Generate QR code using QR Server API
+  // Generate QR code using QR Server API with the specific amount
   useEffect(() => {
     const qrData = encodeURIComponent(upiUrl);
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}`;
     setQrCodeDataUrl(qrCodeUrl);
-  }, [upiUrl]);
+    console.log('Generated QR for amount:', amount, 'UPI URL:', upiUrl);
+  }, [upiUrl, amount]);
 
   const handleCopyUPI = () => {
     navigator.clipboard.writeText(upiId);
@@ -137,6 +139,22 @@ const UPIPayment = ({ amount, description, onSuccess, onBack }: UPIPaymentProps)
                 <div className="bg-gradient-to-r from-cyan-500/10 to-purple-500/10 p-3 rounded-lg">
                   <p className="text-white font-medium text-sm">Amount: ₹{amount}</p>
                   <p className="text-gray-300 text-xs">{description || 'Tournament Entry Fee'}</p>
+                </div>
+
+                {/* UPI ID Section */}
+                <div className="mt-3 p-2 bg-gray-800 rounded-lg">
+                  <p className="text-gray-300 text-xs mb-1">UPI ID:</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-cyan-400 font-mono text-sm">{upiId}</span>
+                    <Button
+                      onClick={handleCopyUPI}
+                      size="sm"
+                      variant="ghost"
+                      className="text-cyan-400 hover:text-cyan-300"
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

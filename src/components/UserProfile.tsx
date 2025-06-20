@@ -8,9 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, Calendar, Shield, Edit3, Save, X } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const UserProfile = () => {
-  const { user, profile, updateProfile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -53,24 +54,43 @@ const UserProfile = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await updateProfile({
-        name: formData.name.trim(),
-        phone: formData.phone.trim() || null,
-        avatar_url: formData.avatar_url.trim() || null
-      });
+      console.log('Updating profile for user:', user.id);
+      console.log('Form data:', formData);
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name.trim(),
+          phone: formData.phone.trim() || null,
+          avatar_url: formData.avatar_url.trim() || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select();
 
       if (error) {
         console.error('Profile update error:', error);
         toast({
           title: "Error",
-          description: "Failed to update profile. Please try again.",
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive"
         });
         return;
       }
+
+      console.log('Profile updated successfully:', data);
 
       toast({
         title: "Success!",
@@ -138,7 +158,7 @@ const UserProfile = () => {
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                 >
                   <Save className="w-4 h-4 mr-1" />
-                  Save
+                  {loading ? 'Saving...' : 'Save'}
                 </Button>
                 <Button
                   onClick={handleCancel}
@@ -164,7 +184,7 @@ const UserProfile = () => {
             </Avatar>
             <div>
               <h3 className="text-xl font-semibold text-white">
-                {profile?.name || 'Loading...'}
+                {profile?.name || user.email || 'Loading...'}
               </h3>
               <p className="text-gray-400">{user.email}</p>
               {profile?.is_admin && (

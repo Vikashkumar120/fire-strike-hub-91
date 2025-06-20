@@ -24,6 +24,7 @@ interface Transaction {
   description: string;
   screenshot?: string;
   upiId?: string;
+  transactionId?: string;
 }
 
 interface UserProfile {
@@ -52,6 +53,14 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadAdminData();
     fetchUsers();
+    
+    // Refresh data every 30 seconds
+    const interval = setInterval(() => {
+      loadAdminData();
+      fetchUsers();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUsers = async () => {
@@ -66,7 +75,7 @@ const AdminDashboard = () => {
         console.error('Error fetching users:', error);
         toast({
           title: "Error",
-          description: "Failed to load users",
+          description: `Failed to load users: ${error.message}`,
           variant: "destructive"
         });
         return;
@@ -311,9 +320,18 @@ const AdminDashboard = () => {
           <TabsContent value="users" className="space-y-6 mt-6">
             <Card className="bg-black/30 border-blue-500/20 backdrop-blur-md">
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Users className="w-5 h-5 mr-2 text-blue-400" />
-                  Registered Users ({users.length})
+                <CardTitle className="text-white flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Users className="w-5 h-5 mr-2 text-blue-400" />
+                    Registered Users ({users.length})
+                  </div>
+                  <Button 
+                    onClick={fetchUsers}
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Refresh
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -360,9 +378,18 @@ const AdminDashboard = () => {
           <TabsContent value="transactions" className="space-y-6 mt-6">
             <Card className="bg-black/30 border-green-500/20 backdrop-blur-md">
               <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <ArrowDownCircle className="w-5 h-5 mr-2 text-green-400" />
-                  Pending Deposit Approvals ({pendingDeposits.length})
+                <CardTitle className="text-white flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ArrowDownCircle className="w-5 h-5 mr-2 text-green-400" />
+                    Pending Deposit Approvals ({pendingDeposits.length})
+                  </div>
+                  <Button 
+                    onClick={loadAdminData}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Refresh
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -375,6 +402,9 @@ const AdminDashboard = () => {
                           <span className="text-green-400 font-bold text-lg">₹{transaction.amount}</span>
                         </div>
                         <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
+                        {transaction.transactionId && (
+                          <p className="text-cyan-400 text-sm">Transaction ID: {transaction.transactionId}</p>
+                        )}
                         <p className="text-gray-500 text-xs">{new Date(transaction.timestamp).toLocaleString()}</p>
                         {transaction.screenshot && (
                           <a 

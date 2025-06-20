@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CalendarIcon, Trophy, Users, IndianRupee } from 'lucide-react';
+import { CalendarIcon, Trophy, Users, IndianRupee, Upload, Image } from 'lucide-react';
 
 const TournamentCreation = () => {
   const [formData, setFormData] = useState({
@@ -25,6 +25,7 @@ const TournamentCreation = () => {
   });
   
   const [loading, setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
@@ -32,6 +33,19 @@ const TournamentCreation = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleThumbnailUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setThumbnailFile(file);
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setFormData(prev => ({
+        ...prev,
+        thumbnail: previewUrl
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +63,8 @@ const TournamentCreation = () => {
     setLoading(true);
 
     try {
+      console.log('Creating tournament with data:', formData);
+
       const { data, error } = await supabase
         .from('tournaments')
         .insert({
@@ -64,17 +80,20 @@ const TournamentCreation = () => {
           thumbnail: formData.thumbnail || '/lovable-uploads/aa3dfb2a-24a0-4fbb-8a63-87e451fe6311.png',
           status: 'open',
           current_players: 0
-        });
+        })
+        .select();
 
       if (error) {
         console.error('Tournament creation error:', error);
         toast({
           title: "Error",
-          description: "Failed to create tournament. Please try again.",
+          description: `Failed to create tournament: ${error.message}`,
           variant: "destructive"
         });
         return;
       }
+
+      console.log('Tournament created successfully:', data);
 
       toast({
         title: "Success!",
@@ -94,6 +113,7 @@ const TournamentCreation = () => {
         custom_code: '',
         thumbnail: ''
       });
+      setThumbnailFile(null);
 
     } catch (error) {
       console.error('Tournament creation exception:', error);
@@ -228,14 +248,25 @@ const TournamentCreation = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="thumbnail" className="text-white">Thumbnail URL</Label>
-              <Input
-                id="thumbnail"
-                value={formData.thumbnail}
-                onChange={(e) => handleInputChange('thumbnail', e.target.value)}
-                placeholder="Image URL (optional)"
-                className="bg-black/20 border-gray-600 text-white"
-              />
+              <Label htmlFor="thumbnail" className="text-white">Thumbnail Image</Label>
+              <div className="space-y-2">
+                <Input
+                  id="thumbnail"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleThumbnailUpload}
+                  className="bg-black/20 border-gray-600 text-white"
+                />
+                {formData.thumbnail && (
+                  <div className="mt-2">
+                    <img 
+                      src={formData.thumbnail} 
+                      alt="Thumbnail preview" 
+                      className="w-20 h-20 object-cover rounded-lg border border-gray-600"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
