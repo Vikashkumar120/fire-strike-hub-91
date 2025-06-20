@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard, ArrowDownCircle, ArrowUpCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
+      console.log('Fetching users from database...');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -70,8 +72,8 @@ const AdminDashboard = () => {
         return;
       }
 
+      console.log('Users loaded from database:', data);
       setUsers(data || []);
-      console.log('Users loaded:', data);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -81,49 +83,95 @@ const AdminDashboard = () => {
 
   const loadAdminData = () => {
     try {
+      console.log('Loading admin transaction history...');
       // Load admin transaction history from localStorage
       const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+      console.log('Admin transactions loaded:', adminTransactions);
       setTransactions(adminTransactions);
 
       // Load user activity
       const activity = JSON.parse(localStorage.getItem('userActivity') || '[]');
       setUserActivity(activity);
       
-      console.log('Admin transactions loaded:', adminTransactions);
     } catch (error) {
       console.error('Error loading admin data:', error);
     }
   };
 
-  const handleApproveDeposit = (transactionId: string, userId: string, amount: number) => {
-    // Update user's wallet balance
-    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-    const userWallet = walletData[userId] || { balance: 0, transactions: [] };
-    
-    // Add money to user's wallet
-    userWallet.balance += amount;
-    
-    // Update transaction status to completed
-    userWallet.transactions = userWallet.transactions.map((t: any) => 
-      t.id === transactionId ? { ...t, status: 'completed' } : t
-    );
-    
-    walletData[userId] = userWallet;
-    localStorage.setItem('walletData', JSON.stringify(walletData));
+  const handleApproveDeposit = async (transactionId: string, userId: string, amount: number) => {
+    try {
+      console.log('Approving deposit:', { transactionId, userId, amount });
+      
+      // Update user's wallet balance in database
+      const { data: walletData, error: fetchError } = await supabase
+        .from('wallets')
+        .select('balance')
+        .eq('user_id', userId)
+        .single();
 
-    // Update admin transactions
-    const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-    const updatedTransactions = adminTransactions.map((t: any) => 
-      t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
-    );
-    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+      if (fetchError) {
+        console.error('Error fetching wallet:', fetchError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch wallet data",
+          variant: "destructive"
+        });
+        return;
+      }
 
-    setTransactions(updatedTransactions);
-    
-    toast({
-      title: "Deposit Approved!",
-      description: `₹${amount} has been added to user's wallet`,
-    });
+      const newBalance = (Number(walletData.balance) || 0) + amount;
+      
+      const { error: updateError } = await supabase
+        .from('wallets')
+        .update({ 
+          balance: newBalance,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('Error updating wallet:', updateError);
+        toast({
+          title: "Error",
+          description: "Failed to update wallet balance",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update transaction status in database
+      await supabase
+        .from('wallet_transactions')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('type', 'deposit')
+        .eq('amount', amount)
+        .eq('status', 'pending');
+
+      // Update admin transactions in localStorage
+      const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+      const updatedTransactions = adminTransactions.map((t: any) => 
+        t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
+      );
+      localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+      setTransactions(updatedTransactions);
+      
+      toast({
+        title: "Deposit Approved!",
+        description: `₹${amount} has been added to user's wallet`,
+      });
+
+    } catch (error) {
+      console.error('Error approving deposit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve deposit",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleRejectTransaction = (transactionId: string, type: string) => {
@@ -137,11 +185,21 @@ const AdminDashboard = () => {
     if (type === 'withdraw') {
       const transaction = adminTransactions.find((t: any) => t.id === transactionId);
       if (transaction) {
-        const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-        const userWallet = walletData[transaction.userId] || { balance: 0, transactions: [] };
-        userWallet.balance += transaction.amount;
-        walletData[transaction.userId] = userWallet;
-        localStorage.setItem('walletData', JSON.stringify(walletData));
+        // In a real app, you'd update the database here
+        supabase
+          .from('wallets')
+          .select('balance')
+          .eq('user_id', transaction.userId)
+          .single()
+          .then(({ data }) => {
+            if (data) {
+              const newBalance = (Number(data.balance) || 0) + transaction.amount;
+              supabase
+                .from('wallets')
+                .update({ balance: newBalance })
+                .eq('user_id', transaction.userId);
+            }
+          });
       }
     }
 
@@ -153,29 +211,41 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleApproveWithdrawal = (transactionId: string, userId: string, amount: number) => {
-    // Update admin transactions
-    const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-    const updatedTransactions = adminTransactions.map((t: any) => 
-      t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
-    );
-    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+  const handleApproveWithdrawal = async (transactionId: string, userId: string, amount: number) => {
+    try {
+      // Update transaction status in database
+      await supabase
+        .from('wallet_transactions')
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('type', 'withdraw')
+        .eq('amount', amount)
+        .eq('status', 'pending');
 
-    // Update user's transaction in wallet
-    const walletData = JSON.parse(localStorage.getItem('walletData') || '{}');
-    const userWallet = walletData[userId] || { balance: 0, transactions: [] };
-    userWallet.transactions = userWallet.transactions.map((t: any) => 
-      t.id === transactionId ? { ...t, status: 'completed' } : t
-    );
-    walletData[userId] = userWallet;
-    localStorage.setItem('walletData', JSON.stringify(walletData));
+      // Update admin transactions
+      const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
+      const updatedTransactions = adminTransactions.map((t: any) => 
+        t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
+      );
+      localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+      setTransactions(updatedTransactions);
+      
+      toast({
+        title: "Withdrawal Approved!",
+        description: `₹${amount} withdrawal has been approved`,
+      });
 
-    setTransactions(updatedTransactions);
-    
-    toast({
-      title: "Withdrawal Approved!",
-      description: `₹${amount} withdrawal has been approved`,
-    });
+    } catch (error) {
+      console.error('Error approving withdrawal:', error);
+      toast({
+        title: "Error",
+        description: "Failed to approve withdrawal",
+        variant: "destructive"
+      });
+    }
   };
 
   const pendingDeposits = transactions.filter(t => t.type === 'deposit' && t.status === 'pending');

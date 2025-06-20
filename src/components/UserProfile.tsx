@@ -1,31 +1,47 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, Calendar, Trophy, Star, Edit, Save, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/AuthContext';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { User, Mail, Phone, Calendar, Shield, Edit3, Save, X } from 'lucide-react';
 
 const UserProfile = () => {
-  const { profile, updateProfile, refreshProfile, user, loading } = useAuth();
-  const { toast } = useToast();
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const { user, profile, updateProfile, refreshProfile } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    phone: ''
+    phone: '',
+    avatar_url: ''
   });
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (profile) {
       setFormData({
         name: profile.name || '',
-        phone: profile.phone || ''
+        phone: profile.phone || '',
+        avatar_url: profile.avatar_url || ''
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (user) {
+      refreshProfile();
+    }
+  }, [user, refreshProfile]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -37,191 +53,198 @@ const UserProfile = () => {
       return;
     }
 
-    setSaving(true);
-    
+    setLoading(true);
+
     try {
       const { error } = await updateProfile({
         name: formData.name.trim(),
-        phone: formData.phone.trim() || null
+        phone: formData.phone.trim() || null,
+        avatar_url: formData.avatar_url.trim() || null
       });
 
       if (error) {
         console.error('Profile update error:', error);
         toast({
-          title: "Update Failed",
-          description: error.message || "Failed to update profile",
+          title: "Error",
+          description: "Failed to update profile. Please try again.",
           variant: "destructive"
         });
-        setSaving(false);
         return;
       }
 
       toast({
         title: "Success!",
-        description: "Profile updated successfully"
+        description: "Profile updated successfully",
       });
-      
-      setEditing(false);
+
+      setIsEditing(false);
       await refreshProfile();
+
     } catch (error) {
       console.error('Profile update exception:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const handleCancel = () => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        phone: profile.phone || '',
+        avatar_url: profile.avatar_url || ''
+      });
+    }
+    setIsEditing(false);
   };
 
-  // Show loading state
-  if (loading || !user) {
+  if (!user) {
     return (
-      <div className="text-center py-12">
-        <User className="w-16 h-16 text-cyan-400 mx-auto mb-4 animate-spin" />
-        <p className="text-gray-400">Loading profile...</p>
-      </div>
-    );
-  }
-
-  // Show profile not found state (shouldn't happen normally)
-  if (!profile) {
-    return (
-      <div className="text-center py-12">
-        <User className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-400">Profile not found</p>
-        <Button 
-          onClick={refreshProfile}
-          className="mt-4 bg-cyan-500 hover:bg-cyan-600"
-        >
-          Retry Loading Profile
-        </Button>
+      <div className="text-center py-8">
+        <p className="text-gray-400">Please login to view your profile</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-black/30 border-purple-500/20">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-white flex items-center">
-            <User className="w-6 h-6 mr-2 text-cyan-400" />
-            User Profile
-          </CardTitle>
-          {!editing ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditing(true)}
-              className="border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-black"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          ) : (
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSave}
-                disabled={saving}
-                className="border-green-500 text-green-400 hover:bg-green-500 hover:text-black"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Saving...' : 'Save'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditing(false);
-                  setFormData({
-                    name: profile.name || '',
-                    phone: profile.phone || ''
-                  });
-                }}
-                disabled={saving}
-                className="border-red-500 text-red-400 hover:bg-red-500 hover:text-black"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
+    <div className="max-w-2xl mx-auto">
+      <Card className="bg-black/30 border-purple-500/20 backdrop-blur-md">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center justify-between">
+            <div className="flex items-center">
+              <User className="w-5 h-5 mr-2 text-purple-400" />
+              User Profile
             </div>
-          )}
+            {!isEditing ? (
+              <Button
+                onClick={() => setIsEditing(true)}
+                size="sm"
+                className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                <Edit3 className="w-4 h-4 mr-1" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSave}
+                  disabled={loading}
+                  size="sm"
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                >
+                  <Save className="w-4 h-4 mr-1" />
+                  Save
+                </Button>
+                <Button
+                  onClick={handleCancel}
+                  size="sm"
+                  variant="outline"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  <User className="w-4 h-4 inline mr-2" />
-                  Full Name
-                </label>
-                {editing ? (
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="bg-black/20 border-gray-600 text-white"
-                    placeholder="Enter your full name"
-                    disabled={saving}
-                  />
-                ) : (
-                  <p className="text-white text-lg">{profile.name || 'Not set'}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  <Mail className="w-4 h-4 inline mr-2" />
-                  Email Address
-                </label>
-                <p className="text-white text-lg">{profile.email}</p>
-                <Badge className="mt-1 bg-green-500/20 text-green-400">Verified</Badge>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  <Phone className="w-4 h-4 inline mr-2" />
-                  Phone Number
-                </label>
-                {editing ? (
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="bg-black/20 border-gray-600 text-white"
-                    placeholder="Enter your phone number"
-                    disabled={saving}
-                  />
-                ) : (
-                  <p className="text-white text-lg">{profile.phone || 'Not set'}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-gray-300 text-sm font-medium mb-2">
-                  <Calendar className="w-4 h-4 inline mr-2" />
-                  Member Since
-                </label>
-                <p className="text-white text-lg">{formatDate(profile.created_at)}</p>
-              </div>
+          {/* Avatar Section */}
+          <div className="flex items-center space-x-4">
+            <Avatar className="w-20 h-20">
+              <AvatarImage src={formData.avatar_url || profile?.avatar_url} alt={profile?.name || 'User'} />
+              <AvatarFallback className="bg-purple-500/20 text-purple-300 text-lg">
+                {(profile?.name || user.email || 'U').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="text-xl font-semibold text-white">
+                {profile?.name || 'Loading...'}
+              </h3>
+              <p className="text-gray-400">{user.email}</p>
+              {profile?.is_admin && (
+                <div className="flex items-center mt-2">
+                  <Shield className="w-4 h-4 text-red-400 mr-1" />
+                  <span className="text-red-400 text-sm font-medium">Administrator</span>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Badge className={`${profile.is_admin ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>
-              {profile.is_admin ? '👑 Admin Account' : '🎮 Player Account'}
-            </Badge>
+          {/* Profile Form */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-white">Full Name</Label>
+              {isEditing ? (
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="Enter your full name"
+                  className="bg-black/20 border-gray-600 text-white"
+                />
+              ) : (
+                <div className="flex items-center p-3 bg-black/20 rounded-md border border-gray-600">
+                  <User className="w-4 h-4 text-gray-400 mr-3" />
+                  <span className="text-white">{profile?.name || 'Not set'}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white">Email Address</Label>
+              <div className="flex items-center p-3 bg-black/10 rounded-md border border-gray-700">
+                <Mail className="w-4 h-4 text-gray-400 mr-3" />
+                <span className="text-gray-300">{user.email}</span>
+                <span className="ml-auto text-xs text-gray-500">Cannot be changed</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-white">Phone Number</Label>
+              {isEditing ? (
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="Enter your phone number"
+                  className="bg-black/20 border-gray-600 text-white"
+                />
+              ) : (
+                <div className="flex items-center p-3 bg-black/20 rounded-md border border-gray-600">
+                  <Phone className="w-4 h-4 text-gray-400 mr-3" />
+                  <span className="text-white">{profile?.phone || 'Not set'}</span>
+                </div>
+              )}
+            </div>
+
+            {isEditing && (
+              <div className="space-y-2">
+                <Label htmlFor="avatar_url" className="text-white">Avatar URL</Label>
+                <Input
+                  id="avatar_url"
+                  value={formData.avatar_url}
+                  onChange={(e) => handleInputChange('avatar_url', e.target.value)}
+                  placeholder="Enter avatar image URL (optional)"
+                  className="bg-black/20 border-gray-600 text-white"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-white">Account Created</Label>
+              <div className="flex items-center p-3 bg-black/10 rounded-md border border-gray-700">
+                <Calendar className="w-4 h-4 text-gray-400 mr-3" />
+                <span className="text-gray-300">
+                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Unknown'}
+                </span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
