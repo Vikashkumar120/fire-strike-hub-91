@@ -135,6 +135,7 @@ export type Database = {
         Row: {
           created_at: string | null
           current_players: number | null
+          custom_code: string | null
           duration: string | null
           entry_fee: number
           id: string
@@ -150,6 +151,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_players?: number | null
+          custom_code?: string | null
           duration?: string | null
           entry_fee: number
           id?: string
@@ -165,6 +167,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_players?: number | null
+          custom_code?: string | null
           duration?: string | null
           entry_fee?: number
           id?: string

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Users, Trophy, Calendar, Settings, Plus, CreditCard, ArrowDownCircle, ArrowUpCircle, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,17 +13,17 @@ import TournamentManagement from '@/components/TournamentManagement';
 
 interface Transaction {
   id: string;
-  userId?: string;
+  user_id?: string;
   userName?: string;
   userEmail?: string;
   type: string;
   amount: number;
   status: string;
-  timestamp: string;
+  created_at: string;
   description: string;
   screenshot?: string;
-  upiId?: string;
-  transactionId?: string;
+  upi_id?: string;
+  transaction_id?: string;
 }
 
 interface UserProfile {
@@ -39,7 +38,6 @@ interface UserProfile {
 const AdminDashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [userActivity, setUserActivity] = useState([]);
   const [activeTab, setActiveTab] = useState('users');
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -53,11 +51,13 @@ const AdminDashboard = () => {
   useEffect(() => {
     loadAdminData();
     fetchUsers();
+    fetchTransactions();
     
     // Refresh data every 30 seconds
     const interval = setInterval(() => {
       loadAdminData();
       fetchUsers();
+      fetchTransactions();
     }, 30000);
 
     return () => clearInterval(interval);
@@ -90,18 +90,52 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    try {
+      console.log('Fetching transactions from database...');
+      const { data, error } = await supabase
+        .from('wallet_transactions')
+        .select(`
+          *,
+          profiles!inner(name, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        return;
+      }
+
+      console.log('Transactions loaded from database:', data);
+      
+      // Transform data to match expected format
+      const transformedTransactions = data?.map(transaction => ({
+        id: transaction.id,
+        user_id: transaction.user_id,
+        userName: transaction.profiles?.name || 'Unknown User',
+        userEmail: transaction.profiles?.email || '',
+        type: transaction.type,
+        amount: Number(transaction.amount),
+        status: transaction.status || 'pending',
+        created_at: transaction.created_at,
+        description: transaction.description || '',
+        screenshot: transaction.screenshot,
+        upi_id: transaction.upi_id,
+        transaction_id: transaction.transaction_id
+      })) || [];
+
+      setTransactions(transformedTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    }
+  };
+
   const loadAdminData = () => {
     try {
       console.log('Loading admin transaction history...');
-      // Load admin transaction history from localStorage
+      // Load admin transaction history from localStorage as backup
       const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-      console.log('Admin transactions loaded:', adminTransactions);
-      setTransactions(adminTransactions);
-
-      // Load user activity
-      const activity = JSON.parse(localStorage.getItem('userActivity') || '[]');
-      setUserActivity(activity);
-      
+      console.log('Admin transactions loaded from localStorage:', adminTransactions);
     } catch (error) {
       console.error('Error loading admin data:', error);
     }
@@ -149,24 +183,26 @@ const AdminDashboard = () => {
       }
 
       // Update transaction status in database
-      await supabase
+      const { error: txnError } = await supabase
         .from('wallet_transactions')
         .update({ 
           status: 'completed',
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId)
-        .eq('type', 'deposit')
-        .eq('amount', amount)
-        .eq('status', 'pending');
+        .eq('id', transactionId);
 
-      // Update admin transactions in localStorage
-      const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-      const updatedTransactions = adminTransactions.map((t: any) => 
-        t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
-      );
-      localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
-      setTransactions(updatedTransactions);
+      if (txnError) {
+        console.error('Error updating transaction:', txnError);
+        toast({
+          title: "Error", 
+          description: "Failed to update transaction status",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Refresh transactions
+      await fetchTransactions();
       
       toast({
         title: "Deposit Approved!",
@@ -183,64 +219,82 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleRejectTransaction = (transactionId: string, type: string) => {
-    const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-    const updatedTransactions = adminTransactions.map((t: any) => 
-      t.id === transactionId ? { ...t, status: 'failed', rejectedAt: new Date().toISOString() } : t
-    );
-    localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
+  const handleRejectTransaction = async (transactionId: string, type: string) => {
+    try {
+      // Update transaction status to failed
+      const { error } = await supabase
+        .from('wallet_transactions')
+        .update({ 
+          status: 'failed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', transactionId);
 
-    // If it's a withdrawal rejection, refund the money to user's wallet
-    if (type === 'withdraw') {
-      const transaction = adminTransactions.find((t: any) => t.id === transactionId);
-      if (transaction) {
-        // In a real app, you'd update the database here
-        supabase
-          .from('wallets')
-          .select('balance')
-          .eq('user_id', transaction.userId)
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              const newBalance = (Number(data.balance) || 0) + transaction.amount;
-              supabase
-                .from('wallets')
-                .update({ balance: newBalance })
-                .eq('user_id', transaction.userId);
-            }
-          });
+      if (error) {
+        console.error('Error rejecting transaction:', error);
+        toast({
+          title: "Error",
+          description: "Failed to reject transaction",
+          variant: "destructive"
+        });
+        return;
       }
-    }
 
-    setTransactions(updatedTransactions);
-    
-    toast({
-      title: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} Rejected`,
-      description: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} request has been rejected${type === 'withdraw' ? ' and amount refunded' : ''}`,
-    });
+      // If it's a withdrawal rejection, refund the money to user's wallet
+      if (type === 'withdraw') {
+        const transaction = transactions.find(t => t.id === transactionId);
+        if (transaction && transaction.user_id) {
+          const { data: walletData } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('user_id', transaction.user_id)
+            .single();
+
+          if (walletData) {
+            const newBalance = (Number(walletData.balance) || 0) + transaction.amount;
+            await supabase
+              .from('wallets')
+              .update({ balance: newBalance })
+              .eq('user_id', transaction.user_id);
+          }
+        }
+      }
+
+      // Refresh transactions
+      await fetchTransactions();
+      
+      toast({
+        title: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} Rejected`,
+        description: `${type === 'deposit' ? 'Deposit' : 'Withdrawal'} request has been rejected${type === 'withdraw' ? ' and amount refunded' : ''}`,
+      });
+    } catch (error) {
+      console.error('Error rejecting transaction:', error);
+    }
   };
 
   const handleApproveWithdrawal = async (transactionId: string, userId: string, amount: number) => {
     try {
       // Update transaction status in database
-      await supabase
+      const { error } = await supabase
         .from('wallet_transactions')
         .update({ 
           status: 'completed',
           updated_at: new Date().toISOString()
         })
-        .eq('user_id', userId)
-        .eq('type', 'withdraw')
-        .eq('amount', amount)
-        .eq('status', 'pending');
+        .eq('id', transactionId);
 
-      // Update admin transactions
-      const adminTransactions = JSON.parse(localStorage.getItem('adminTransactions') || '[]');
-      const updatedTransactions = adminTransactions.map((t: any) => 
-        t.id === transactionId ? { ...t, status: 'completed', approvedAt: new Date().toISOString() } : t
-      );
-      localStorage.setItem('adminTransactions', JSON.stringify(updatedTransactions));
-      setTransactions(updatedTransactions);
+      if (error) {
+        console.error('Error approving withdrawal:', error);
+        toast({
+          title: "Error",
+          description: "Failed to approve withdrawal",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Refresh transactions
+      await fetchTransactions();
       
       toast({
         title: "Withdrawal Approved!",
@@ -384,7 +438,7 @@ const AdminDashboard = () => {
                     Pending Deposit Approvals ({pendingDeposits.length})
                   </div>
                   <Button 
-                    onClick={loadAdminData}
+                    onClick={fetchTransactions}
                     size="sm"
                     className="bg-green-600 hover:bg-green-700"
                   >
@@ -402,10 +456,10 @@ const AdminDashboard = () => {
                           <span className="text-green-400 font-bold text-lg">₹{transaction.amount}</span>
                         </div>
                         <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
-                        {transaction.transactionId && (
-                          <p className="text-cyan-400 text-sm">Transaction ID: {transaction.transactionId}</p>
+                        {transaction.transaction_id && (
+                          <p className="text-cyan-400 text-sm">Transaction ID: {transaction.transaction_id}</p>
                         )}
-                        <p className="text-gray-500 text-xs">{new Date(transaction.timestamp).toLocaleString()}</p>
+                        <p className="text-gray-500 text-xs">{new Date(transaction.created_at).toLocaleString()}</p>
                         {transaction.screenshot && (
                           <a 
                             href={transaction.screenshot} 
@@ -419,7 +473,7 @@ const AdminDashboard = () => {
                       </div>
                       <div className="flex gap-3 ml-4">
                         <Button 
-                          onClick={() => handleApproveDeposit(transaction.id, transaction.userId!, transaction.amount)}
+                          onClick={() => handleApproveDeposit(transaction.id, transaction.user_id!, transaction.amount)}
                           className="bg-green-600 hover:bg-green-700 text-white"
                           size="sm"
                         >
@@ -464,14 +518,14 @@ const AdminDashboard = () => {
                           <span className="text-orange-400 font-bold text-lg">₹{transaction.amount}</span>
                         </div>
                         <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
-                        {transaction.upiId && (
-                          <p className="text-cyan-400 text-sm">UPI ID: {transaction.upiId}</p>
+                        {transaction.upi_id && (
+                          <p className="text-cyan-400 text-sm">UPI ID: {transaction.upi_id}</p>
                         )}
-                        <p className="text-gray-500 text-xs">{new Date(transaction.timestamp).toLocaleString()}</p>
+                        <p className="text-gray-500 text-xs">{new Date(transaction.created_at).toLocaleString()}</p>
                       </div>
                       <div className="flex gap-3 ml-4">
                         <Button 
-                          onClick={() => handleApproveWithdrawal(transaction.id, transaction.userId!, transaction.amount)}
+                          onClick={() => handleApproveWithdrawal(transaction.id, transaction.user_id!, transaction.amount)}
                           className="bg-green-600 hover:bg-green-700 text-white"
                           size="sm"
                         >
@@ -530,13 +584,11 @@ const AdminDashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-white flex items-center">
                     <Trophy className="w-5 h-5 mr-2" />
-                    Tournaments Joined
+                    Total Transactions
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-3xl font-bold text-yellow-400">
-                    {userActivity.filter((a: any) => a.action === 'joined_tournament').length}
-                  </p>
+                  <p className="text-3xl font-bold text-yellow-400">{transactions.length}</p>
                 </CardContent>
               </Card>
 
