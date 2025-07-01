@@ -9,13 +9,233 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_admin: boolean | null
+          name: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          is_admin?: boolean | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_admin?: boolean | null
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tournament_participants: {
+        Row: {
+          id: string
+          joined_at: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_participants_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          created_at: string
+          current_players: number | null
+          custom_code: string | null
+          duration: string | null
+          entry_fee: number
+          id: string
+          map: string | null
+          max_players: number
+          prize: string
+          start_time: string
+          status: string | null
+          thumbnail: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_players?: number | null
+          custom_code?: string | null
+          duration?: string | null
+          entry_fee: number
+          id?: string
+          map?: string | null
+          max_players: number
+          prize: string
+          start_time: string
+          status?: string | null
+          thumbnail?: string | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_players?: number | null
+          custom_code?: string | null
+          duration?: string | null
+          entry_fee?: number
+          id?: string
+          map?: string | null
+          max_players?: number
+          prize?: string
+          start_time?: string
+          status?: string | null
+          thumbnail?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          coins: number | null
+          created_at: string
+          description: string | null
+          id: string
+          screenshot: string | null
+          status: string | null
+          transaction_id: string | null
+          type: string
+          updated_at: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          coins?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type: string
+          updated_at?: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          coins?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          screenshot?: string | null
+          status?: string | null
+          transaction_id?: string | null
+          type?: string
+          updated_at?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          balance: number | null
+          coins: number | null
+          created_at: string
+          id: string
+          last_daily_bonus: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          coins?: number | null
+          created_at?: string
+          id?: string
+          last_daily_bonus?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          coins?: number | null
+          created_at?: string
+          id?: string
+          last_daily_bonus?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

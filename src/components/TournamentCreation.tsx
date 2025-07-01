@@ -70,8 +70,8 @@ const TournamentCreation = () => {
       console.log('Processed tournament data:', tournamentData);
 
       const { data, error } = await supabase
-        .from('tournaments')
-        .insert([tournamentData])
+        .from('tournaments' as any)
+        .insert([tournamentData] as any)
         .select()
         .single();
 

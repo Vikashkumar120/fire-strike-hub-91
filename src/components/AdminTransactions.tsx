@@ -46,7 +46,7 @@ const AdminTransactions = () => {
       console.log('Fetching transactions...');
       
       const { data, error } = await supabase
-        .from('wallet_transactions')
+        .from('wallet_transactions' as any)
         .select(`
           *,
           profiles!inner(name, email)
@@ -78,7 +78,7 @@ const AdminTransactions = () => {
       
       // First, get current wallet balance
       const { data: walletData, error: walletError } = await supabase
-        .from('wallets')
+        .from('wallets' as any)
         .select('balance')
         .eq('user_id', transaction.user_id)
         .single();
@@ -93,17 +93,26 @@ const AdminTransactions = () => {
         return;
       }
 
+      if (!walletData) {
+        toast({
+          title: "Error",
+          description: "Wallet not found",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Calculate new balance
       const currentBalance = Number(walletData.balance) || 0;
       const newBalance = currentBalance + Number(transaction.amount);
 
       // Update wallet balance
       const { error: updateWalletError } = await supabase
-        .from('wallets')
+        .from('wallets' as any)
         .update({ 
           balance: newBalance,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('user_id', transaction.user_id);
 
       if (updateWalletError) {
@@ -118,11 +127,11 @@ const AdminTransactions = () => {
 
       // Update transaction status
       const { error: updateTxnError } = await supabase
-        .from('wallet_transactions')
+        .from('wallet_transactions' as any)
         .update({ 
           status: 'completed',
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', transaction.id);
 
       if (updateTxnError) {
@@ -157,11 +166,11 @@ const AdminTransactions = () => {
     try {
       // Update transaction status to failed
       const { error } = await supabase
-        .from('wallet_transactions')
+        .from('wallet_transactions' as any)
         .update({ 
           status: 'failed',
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', transaction.id);
 
       if (error) {
@@ -177,16 +186,16 @@ const AdminTransactions = () => {
       // If it's a withdrawal, refund the money
       if (transaction.type === 'withdraw') {
         const { data: walletData } = await supabase
-          .from('wallets')
+          .from('wallets' as any)
           .select('balance')
           .eq('user_id', transaction.user_id)
           .single();
 
-        if (walletData) {
+        if (walletData && walletData.balance !== undefined) {
           const newBalance = (Number(walletData.balance) || 0) + Number(transaction.amount);
           await supabase
-            .from('wallets')
-            .update({ balance: newBalance })
+            .from('wallets' as any)
+            .update({ balance: newBalance } as any)
             .eq('user_id', transaction.user_id);
         }
       }
