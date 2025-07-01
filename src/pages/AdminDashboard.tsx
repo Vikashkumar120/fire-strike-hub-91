@@ -10,6 +10,7 @@ import { Navigate } from 'react-router-dom';
 import MatchResultsManagement from '@/components/MatchResultsManagement';
 import TournamentCreation from '@/components/TournamentCreation';
 import TournamentManagement from '@/components/TournamentManagement';
+import AdminTransactions from '@/components/AdminTransactions';
 
 interface Transaction {
   id: string;
@@ -97,7 +98,7 @@ const AdminDashboard = () => {
         .from('wallet_transactions')
         .select(`
           *,
-          profiles!inner(name, email)
+          profiles(name, email)
         `)
         .order('created_at', { ascending: false });
 
@@ -430,128 +431,7 @@ const AdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="transactions" className="space-y-6 mt-6">
-            <Card className="bg-black/30 border-green-500/20 backdrop-blur-md">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center justify-between">
-                  <div className="flex items-center">
-                    <ArrowDownCircle className="w-5 h-5 mr-2 text-green-400" />
-                    Pending Deposit Approvals ({pendingDeposits.length})
-                  </div>
-                  <Button 
-                    onClick={fetchTransactions}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    Refresh
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {pendingDeposits.map((transaction) => (
-                    <div key={transaction.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-green-500/20">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-white font-semibold">{transaction.userName}</h3>
-                          <span className="text-green-400 font-bold text-lg">₹{transaction.amount}</span>
-                        </div>
-                        <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
-                        {transaction.transaction_id && (
-                          <p className="text-cyan-400 text-sm">Transaction ID: {transaction.transaction_id}</p>
-                        )}
-                        <p className="text-gray-500 text-xs">{new Date(transaction.created_at).toLocaleString()}</p>
-                        {transaction.screenshot && (
-                          <a 
-                            href={transaction.screenshot} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="text-blue-400 text-xs hover:underline mt-2 inline-block"
-                          >
-                            📷 View Payment Screenshot
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex gap-3 ml-4">
-                        <Button 
-                          onClick={() => handleApproveDeposit(transaction.id, transaction.user_id!, transaction.amount)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          size="sm"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button 
-                          onClick={() => handleRejectTransaction(transaction.id, 'deposit')}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          size="sm"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {pendingDeposits.length === 0 && (
-                    <div className="text-center py-8">
-                      <ArrowDownCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p className="text-gray-400">No pending deposit approvals</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-black/30 border-orange-500/20 backdrop-blur-md">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <ArrowUpCircle className="w-5 h-5 mr-2 text-orange-400" />
-                  Pending Withdrawal Approvals ({pendingWithdrawals.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {pendingWithdrawals.map((transaction) => (
-                    <div key={transaction.id} className="flex justify-between items-center p-4 bg-black/40 rounded-lg border border-orange-500/20">
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-white font-semibold">{transaction.userName}</h3>
-                          <span className="text-orange-400 font-bold text-lg">₹{transaction.amount}</span>
-                        </div>
-                        <p className="text-gray-300 text-sm mb-1">{transaction.description}</p>
-                        {transaction.upi_id && (
-                          <p className="text-cyan-400 text-sm">UPI ID: {transaction.upi_id}</p>
-                        )}
-                        <p className="text-gray-500 text-xs">{new Date(transaction.created_at).toLocaleString()}</p>
-                      </div>
-                      <div className="flex gap-3 ml-4">
-                        <Button 
-                          onClick={() => handleApproveWithdrawal(transaction.id, transaction.user_id!, transaction.amount)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          size="sm"
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button 
-                          onClick={() => handleRejectTransaction(transaction.id, 'withdraw')}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          size="sm"
-                        >
-                          <XCircle className="w-4 h-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {pendingWithdrawals.length === 0 && (
-                    <div className="text-center py-8">
-                      <ArrowUpCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p className="text-gray-400">No pending withdrawal approvals</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <AdminTransactions />
           </TabsContent>
 
           <TabsContent value="create-tournament" className="space-y-6 mt-6">

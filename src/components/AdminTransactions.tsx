@@ -46,10 +46,10 @@ const AdminTransactions = () => {
       console.log('Fetching transactions...');
       
       const { data, error } = await supabase
-        .from('wallet_transactions' as any)
+        .from('wallet_transactions')
         .select(`
           *,
-          profiles!inner(name, email)
+          profiles(name, email)
         `)
         .order('created_at', { ascending: false });
 
@@ -78,7 +78,7 @@ const AdminTransactions = () => {
       
       // First, get current wallet balance
       const { data: walletData, error: walletError } = await supabase
-        .from('wallets' as any)
+        .from('wallets')
         .select('balance')
         .eq('user_id', transaction.user_id)
         .single();
@@ -108,11 +108,11 @@ const AdminTransactions = () => {
 
       // Update wallet balance
       const { error: updateWalletError } = await supabase
-        .from('wallets' as any)
+        .from('wallets')
         .update({ 
           balance: newBalance,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('user_id', transaction.user_id);
 
       if (updateWalletError) {
@@ -127,11 +127,11 @@ const AdminTransactions = () => {
 
       // Update transaction status
       const { error: updateTxnError } = await supabase
-        .from('wallet_transactions' as any)
+        .from('wallet_transactions')
         .update({ 
           status: 'completed',
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', transaction.id);
 
       if (updateTxnError) {
@@ -166,11 +166,11 @@ const AdminTransactions = () => {
     try {
       // Update transaction status to failed
       const { error } = await supabase
-        .from('wallet_transactions' as any)
+        .from('wallet_transactions')
         .update({ 
           status: 'failed',
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', transaction.id);
 
       if (error) {
@@ -186,16 +186,16 @@ const AdminTransactions = () => {
       // If it's a withdrawal, refund the money
       if (transaction.type === 'withdraw') {
         const { data: walletData } = await supabase
-          .from('wallets' as any)
+          .from('wallets')
           .select('balance')
           .eq('user_id', transaction.user_id)
           .single();
 
-        if (walletData && walletData.balance !== undefined) {
+        if (walletData) {
           const newBalance = (Number(walletData.balance) || 0) + Number(transaction.amount);
           await supabase
-            .from('wallets' as any)
-            .update({ balance: newBalance } as any)
+            .from('wallets')
+            .update({ balance: newBalance })
             .eq('user_id', transaction.user_id);
         }
       }
@@ -261,8 +261,8 @@ const AdminTransactions = () => {
                   <TableRow key={transaction.id}>
                     <TableCell>
                       <div>
-                        <p className="text-white font-medium">{transaction.profiles?.name}</p>
-                        <p className="text-gray-400 text-sm">{transaction.profiles?.email}</p>
+                        <p className="text-white font-medium">{transaction.profiles?.name || 'Unknown User'}</p>
+                        <p className="text-gray-400 text-sm">{transaction.profiles?.email || 'No email'}</p>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -357,8 +357,8 @@ const AdminTransactions = () => {
                   <TableRow key={transaction.id}>
                     <TableCell>
                       <div>
-                        <p className="text-white font-medium">{transaction.profiles?.name}</p>
-                        <p className="text-gray-400 text-sm">{transaction.profiles?.email}</p>
+                        <p className="text-white font-medium">{transaction.profiles?.name || 'Unknown User'}</p>
+                        <p className="text-gray-400 text-sm">{transaction.profiles?.email || 'No email'}</p>
                       </div>
                     </TableCell>
                     <TableCell>
