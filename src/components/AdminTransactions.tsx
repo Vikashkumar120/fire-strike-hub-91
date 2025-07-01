@@ -45,26 +45,42 @@ const AdminTransactions = () => {
       setLoading(true);
       console.log('Fetching transactions...');
       
-      const { data, error } = await supabase
+      // First get all transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
         .from('wallet_transactions')
-        .select(`
-          *,
-          profiles(name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching transactions:', error);
+      if (transactionsError) {
+        console.error('Error fetching transactions:', transactionsError);
         toast({
           title: "Error",
-          description: `Failed to load transactions: ${error.message}`,
+          description: `Failed to load transactions: ${transactionsError.message}`,
           variant: "destructive"
         });
         return;
       }
 
-      console.log('Transactions fetched:', data);
-      setTransactions(data || []);
+      // Then get all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      // Combine the data manually
+      const combinedData = transactionsData?.map(transaction => {
+        const profile = profilesData?.find(p => p.id === transaction.user_id);
+        return {
+          ...transaction,
+          profiles: profile ? { name: profile.name || 'Unknown User', email: profile.email || 'No email' } : { name: 'Unknown User', email: 'No email' }
+        };
+      }) || [];
+
+      console.log('Transactions fetched:', combinedData);
+      setTransactions(combinedData);
     } catch (error) {
       console.error('Error:', error);
     } finally {

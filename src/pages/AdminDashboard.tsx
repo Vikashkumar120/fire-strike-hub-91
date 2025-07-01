@@ -94,36 +94,47 @@ const AdminDashboard = () => {
   const fetchTransactions = async () => {
     try {
       console.log('Fetching transactions from database...');
-      const { data, error } = await supabase
+      
+      // First get all transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
         .from('wallet_transactions')
-        .select(`
-          *,
-          profiles(name, email)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching transactions:', error);
+      if (transactionsError) {
+        console.error('Error fetching transactions:', transactionsError);
         return;
       }
 
-      console.log('Transactions loaded from database:', data);
+      // Then get all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+      }
+
+      console.log('Transactions loaded from database:', transactionsData);
       
-      // Transform data to match expected format
-      const transformedTransactions = data?.map(transaction => ({
-        id: transaction.id,
-        user_id: transaction.user_id,
-        userName: transaction.profiles?.name || 'Unknown User',
-        userEmail: transaction.profiles?.email || '',
-        type: transaction.type,
-        amount: Number(transaction.amount),
-        status: transaction.status || 'pending',
-        created_at: transaction.created_at,
-        description: transaction.description || '',
-        screenshot: transaction.screenshot,
-        upi_id: transaction.upi_id,
-        transaction_id: transaction.transaction_id
-      })) || [];
+      // Transform data to match expected format with manual joins
+      const transformedTransactions = transactionsData?.map(transaction => {
+        const profile = profilesData?.find(p => p.id === transaction.user_id);
+        return {
+          id: transaction.id,
+          user_id: transaction.user_id,
+          userName: profile?.name || 'Unknown User',
+          userEmail: profile?.email || '',
+          type: transaction.type,
+          amount: Number(transaction.amount),
+          status: transaction.status || 'pending',
+          created_at: transaction.created_at,
+          description: transaction.description || '',
+          screenshot: transaction.screenshot,
+          upi_id: transaction.upi_id,
+          transaction_id: transaction.transaction_id
+        };
+      }) || [];
 
       setTransactions(transformedTransactions);
     } catch (error) {
